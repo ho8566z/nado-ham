@@ -52,7 +52,7 @@ public class SecurityConfig {
                                 "/member/signin_result",
                                 "/member/findpassword",
                                 "/member/findpassword_confirm").permitAll()
-                        .requestMatchers("/planner/**").hasAnyRole("USER")
+                        .requestMatchers("/planner/**", "/goal/**", "/goal").hasAnyRole("USER")
                         .requestMatchers("/member/telegram/**", "/member/telegram", "/member/brief", "/member/brief/**").hasAnyRole("USER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

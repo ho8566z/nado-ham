@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -173,6 +174,19 @@ public class PlannerService {
         resultMap.put("busiest_week", busiestWeek);
 
         return resultMap;
+
+    }
+
+    // 하루치 일정(목표 활동을 배치할 때 겹치는 일정을 찾는 데 쓴다). 시작 시간 순, 시간 없는 일정은 뒤
+    public List<PlannerDto> getPlansOn(LocalDate date, String ownerId) {
+        log.info("getPlansOn()");
+
+        return plannerRepository
+                .findByPlanYearAndPlanMonthAndPlanDateAndPlanOwnerId(date.getYear(), date.getMonthValue(), date.getDayOfMonth(), ownerId)
+                .stream()
+                .sorted(PLAN_ORDER)
+                .map(PlannerEntity::toDto)
+                .collect(Collectors.toList());
 
     }
 

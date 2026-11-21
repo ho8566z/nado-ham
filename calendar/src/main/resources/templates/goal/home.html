@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="~{include/title::title}"/>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/header_nav_footer.css}">
+    <link rel="stylesheet" th:href="@{/css/goal.css}">
+
+    <script th:src="@{/js/goal.js}" defer></script>
+
+</head>
+<body>
+
+<header th:replace="~{include/header_nav_footer::header}" />
+
+<nav th:replace="~{include/header_nav_footer::nav}"/>
+
+<section>
+    <div id="section_wrap">
+        <div class="word">
+            GOALS
+        </div>
+
+        <div class="content">
+
+            <!-- 처리 결과·오류 안내 -->
+            <p id="message" class="message" role="status"></p>
+
+            <!-- 진행 중인 목표 -->
+            <h3>내 목표</h3>
+            <div id="goal_list" class="goal_list"></div>
+
+            <!-- 새 목표 만들기: 1) 과정 선택 2) 실행 조건 3) 첫 주 계획 확인 -->
+            <h3>새 목표 만들기</h3>
+
+            <div id="course_list" class="course_list"></div>
+
+            <form id="condition_form" class="condition_form" hidden>
+                <p id="course_goal" class="course_goal"></p>
+
+                <label>시작일 <input type="date" name="start_date"></label>
+
+                <fieldset>
+                    <legend>가능한 요일</legend>
+                    <label><input type="checkbox" name="days" value="1" checked>월</label>
+                    <label><input type="checkbox" name="days" value="2" checked>화</label>
+                    <label><input type="checkbox" name="days" value="3" checked>수</label>
+                    <label><input type="checkbox" name="days" value="4" checked>목</label>
+                    <label><input type="checkbox" name="days" value="5" checked>금</label>
+                    <label><input type="checkbox" name="days" value="6">토</label>
+                    <label><input type="checkbox" name="days" value="7">일</label>
+                </fieldset>
+
+                <label>주당 횟수
+                    <select name="weekly_count">
+                        <option value="1">1회</option>
+                        <option value="2">2회</option>
+                        <option value="3" selected>3회</option>
+                        <option value="4">4회</option>
+                        <option value="5">5회</option>
+                    </select>
+                </label>
+
+                <label>1회 소요 시간(분) <input type="number" name="minutes" min="5" max="120" step="5" value="20"></label>
+
+                <label>시작 시각 <input type="time" name="start_time" value="19:30"></label>
+
+                <button type="submit">첫 주 계획 보기</button>
+            </form>
+
+            <!-- 첫 주 계획 확인: 날짜·시각은 바꿀 수 있고, 겹치는 일정은 표시된다 -->
+            <div id="preview" class="preview" hidden>
+                <h3>첫 주 계획 확인</h3>
+                <ul id="preview_list"></ul>
+                <button type="button" id="btn_start">이 계획으로 시작</button>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{include/header_nav_footer::footer}"/>
+
+</body>
+</html>
