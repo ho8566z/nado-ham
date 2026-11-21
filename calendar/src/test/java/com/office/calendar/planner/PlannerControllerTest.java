@@ -399,4 +399,39 @@ class PlannerControllerTest {
         assertThat(captor.getValue().getImg_name()).isEqualTo("new.png");
     }
 
+    @Test
+    @DisplayName("등록: 없는 날짜(2/31)는 400 INVALID_DATE이고 파일도 일정도 저장하지 않는다")
+    void write_invalidDate() throws Exception {
+        mockMvc.perform(multipart("/planner/plan").file(image)
+                        .param("year", "2026").param("month", "2").param("date", "31")
+                        .param("title", "t").param("body", "b")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_DATE"));
+
+        verify(uploadFileService, never()).upload(anyString(), any());
+        verify(plannerService, never()).writePlan(any());
+    }
+
+    @Test
+    @DisplayName("수정: 없는 날짜(9/0)는 400 INVALID_DATE이고 수정하지 않는다, 남의 일정이면 날짜보다 404가 먼저")
+    void modify_invalidDate() throws Exception {
+        when(plannerService.isOwner(5, "alice")).thenReturn(true);
+        when(plannerService.isOwner(5, "mallory")).thenReturn(false);
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/planner/plan/5")
+                        .param("year", "2026").param("month", "9").param("date", "0")
+                        .param("title", "t").param("body", "b")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_DATE"));
+        verify(plannerService, never()).modifyPlan(any(), anyString());
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/planner/plan/5")
+                        .param("year", "2026").param("month", "9").param("date", "0")
+                        .param("title", "t").param("body", "b")
+                        .with(user("mallory").roles("USER")))
+                .andExpect(status().isNotFound());
+    }
+
 }

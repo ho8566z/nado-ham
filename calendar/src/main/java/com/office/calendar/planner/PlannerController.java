@@ -1,5 +1,6 @@
 package com.office.calendar.planner;
 
+import com.office.calendar.planner.util.PlanDates;
 import com.office.calendar.planner.util.StartTimes;
 import com.office.calendar.planner.util.UploadFileService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,10 @@ public class PlannerController {
 
         String signInedMemberID = principal.getName();
 
+        if (!PlanDates.isValid(form.getYear(), form.getMonth(), form.getDate())) {
+            return invalidDate();
+        }
+
         // 시작 시간은 선택이다. 값이 있으면 HH:mm 형식이어야 한다(파일을 저장하기 전에 먼저 확인)
         String startTime;
         try {
@@ -82,6 +87,15 @@ public class PlannerController {
 
         Map<String, Object> resultMap = plannerService.writePlan(plannerDto);
         return ResponseEntity.ok(resultMap);    // 200 OK
+
+    }
+
+    // 없는 날짜(2/31 등) 응답(400)
+    private ResponseEntity<Map<String, Object>> invalidDate() {
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("code", "INVALID_DATE");
+        errorMap.put("message", "존재하지 않는 날짜입니다.");
+        return ResponseEntity.badRequest().body(errorMap);
 
     }
 
@@ -203,6 +217,10 @@ public class PlannerController {
         if (!plannerService.isOwner(no, signInedMemberID)) {
             return ResponseEntity.notFound().build();      // 404 NOT FOUND
 
+        }
+
+        if (!PlanDates.isValid(form.getYear(), form.getMonth(), form.getDate())) {
+            return invalidDate();
         }
 
         String startTime;
