@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,6 +30,7 @@ public class GoalController {
     private final GoalCalendarService goalCalendarService;
     private final GoalRetroService goalRetroService;
     private final GoalLifecycleService goalLifecycleService;
+    private final GoalSettingsService goalSettingsService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -150,6 +152,15 @@ public class GoalController {
         return ResponseEntity.ok(goalRetroService.finish(principal.getName(), goalNo));
     }
 
+    // 진행 중인 목표의 실행 조건(주당 횟수·소요 시간·시작 시각) 수정
+    @PutMapping("/{goalNo}/settings")
+    public ResponseEntity<SettingsResult> settings(
+            @PathVariable("goalNo") int goalNo, @RequestBody SettingsRequest request, Principal principal) {
+        log.info("settings()");
+
+        return ResponseEntity.ok(goalSettingsService.update(principal.getName(), goalNo, request));
+    }
+
     // 목표 일시 중지·다시 시작
     @PostMapping("/{goalNo}/pause")
     public ResponseEntity<GoalResponse> pause(@PathVariable("goalNo") int goalNo, Principal principal) {
@@ -174,7 +185,7 @@ public class GoalController {
     private HttpStatus statusOf(GoalException e) {
         return switch (e.getCode()) {
             case "ACTIVITY_NOT_FOUND", "GOAL_NOT_FOUND" -> HttpStatus.NOT_FOUND;
-            case "INVALID_STATE", "RETRO_NOT_READY", "ALREADY_PLANNED", "NO_NEXT_WEEK" -> HttpStatus.CONFLICT;
+            case "INVALID_STATE", "RETRO_NOT_READY", "ALREADY_PLANNED", "NO_NEXT_WEEK", "CANNOT_REDUCE", "WEEK_ENDED" -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };
     }

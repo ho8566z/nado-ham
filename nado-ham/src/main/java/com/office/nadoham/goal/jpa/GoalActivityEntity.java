@@ -88,6 +88,12 @@ public class GoalActivityEntity {
         this.startTime = time;
     }
 
+    // 실행 조건(시작 시각·소요 시간) 수정을 아직 하지 않은 활동에 적용한다
+    public void changeSchedule(LocalTime time, int minutes) {
+        this.startTime = time;
+        this.minutes = minutes;
+    }
+
     // 일시 중지했던 목표를 다시 시작할 때 쉰 일수만큼 날짜를 뒤로 민다(시각·상태는 그대로)
     public void shiftDate(long days) {
         this.actDate = actDate.plusDays(days);

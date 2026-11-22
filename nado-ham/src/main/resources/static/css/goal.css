@@ -132,6 +132,34 @@ section {
     cursor: pointer;
 }
 
+.goal_card .checkpoint {
+    display: block;
+    margin: 2px 0 6px;
+    font-size: 13px;
+    opacity: 0.75;
+}
+
+.goal_card .settings_form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    margin-top: 10px;
+    border-top: 1px dashed var(--line);
+}
+
+.goal_card .settings_form button {
+    align-self: flex-start;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.goal_card .settings_hint {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.8;
+}
+
 .goal_card .goal_note {
     font-size: 13px;
     opacity: 0.8;
