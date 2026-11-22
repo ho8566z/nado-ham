@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 
 // 사용자의 목표 하나(과정 선택 + 실행 조건). 소유자는 일정(PLAN)과 같은 로그인 아이디로 구분한다.
 @Entity
@@ -57,6 +58,10 @@ public class GoalEntity {
     @Column(name = "STATUS", nullable = false, length = 10, columnDefinition = "VARCHAR(10)")
     private GoalStatus status;
 
+    // 일시 중지한 날(중지 중에만 값이 있다). 다시 시작할 때 쉰 일수를 계산하는 기준이다
+    @Column(name = "PAUSED_AT")
+    private LocalDate pausedAt;
+
     @Column(name = "REG_DATE")
     private LocalDateTime regDate;
 
@@ -85,6 +90,22 @@ public class GoalEntity {
         if (date.isAfter(endDate)) {
             this.endDate = date;
         }
+    }
+
+    // 일시 중지
+    public void pause(LocalDate today) {
+        this.status = GoalStatus.PAUSED;
+        this.pausedAt = today;
+    }
+
+    // 다시 시작: 상태를 진행 중으로 돌리고 쉰 일수(0 이상)를 돌려준다. 종료일도 그만큼 늦춘다
+    public long resume(LocalDate today) {
+        long pausedDays = pausedAt == null ? 0 : Math.max(0, ChronoUnit.DAYS.between(pausedAt, today));
+        this.status = GoalStatus.ACTIVE;
+        this.pausedAt = null;
+        this.endDate = endDate.plusDays(pausedDays);
+
+        return pausedDays;
     }
 
     // 한 달 과정을 마친 목표

@@ -129,4 +129,14 @@ class GoalCalendarServiceTest {
         }
     }
 
+    @Test
+    @DisplayName("일시 중지한 목표의 예정 활동은 달력에서 숨기고, 끝낸 활동은 기록으로 남긴다")
+    void hidesPlannedActivitiesOfPausedGoal() {
+        ReflectionTestUtils.setField(goal, "status", com.office.nadoham.goal.jpa.GoalStatus.PAUSED);
+        returnActivities(activity(1, LocalDate.of(2026, 11, 23), "19:30", ActivityStatus.PLANNED),
+                activity(2, LocalDate.of(2026, 11, 24), "19:30", ActivityStatus.DONE));
+
+        assertThat(service.monthItems(OWNER, 2026, 11)).extracting(CalendarItem::activityNo).containsExactly(2);
+    }
+
 }
