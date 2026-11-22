@@ -68,11 +68,17 @@ class GoalTodayControllerTest {
         }
 
         @Bean
+        CalendarExportService calendarExportService() {
+            return Mockito.mock(CalendarExportService.class);
+        }
+
+        @Bean
         GoalController goalController(GoalService goalService, GoalTodayService goalTodayService,
                                       GoalCalendarService goalCalendarService, GoalRetroService goalRetroService,
-                                      GoalLifecycleService goalLifecycleService, GoalSettingsService goalSettingsService) {
+                                      GoalLifecycleService goalLifecycleService, GoalSettingsService goalSettingsService,
+                                      CalendarExportService calendarExportService) {
             return new GoalController(goalService, goalTodayService, goalCalendarService, goalRetroService,
-                    goalLifecycleService, goalSettingsService);
+                    goalLifecycleService, goalSettingsService, calendarExportService);
         }
 
     }
@@ -89,6 +95,10 @@ class GoalTodayControllerTest {
     private GoalLifecycleService goalLifecycleService;
     @Autowired
     private GoalSettingsService goalSettingsService;
+    @Autowired
+    private CalendarExportService calendarExportService;
+    @Autowired
+    private GoalService goalService;
 
     private MockMvc mockMvc;
 
@@ -296,6 +306,48 @@ class GoalTodayControllerTest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(put("/goal/1/settings").with(user("boss").roles("ADMIN")).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("종료일 수정: 본인 아이디로 처리하고, 입력 오류는 400 으로 알린다")
+    void endDate() throws Exception {
+        GoalResponse goal = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-31", 3, 20, "19:30", "ACTIVE", List.of());
+        when(goalSettingsService.changeEndDate(Mockito.eq("alice"), Mockito.eq(1), any())).thenReturn(goal);
+        when(goalSettingsService.changeEndDate(Mockito.eq("alice"), Mockito.eq(400), any())).thenThrow(new GoalException("INVALID_END_DATE", "오늘 이후여야 합니다."));
+        String body = "{\"endDate\":\"2026-12-31\"}";
+
+        mockMvc.perform(put("/goal/1/end-date").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.endDate").value("2026-12-31"));
+        mockMvc.perform(put("/goal/400/end-date").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_END_DATE"));
+        mockMvc.perform(put("/goal/1/end-date").with(user("boss").roles("ADMIN")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("캘린더 내보내기: 본인 데이터를 .ics 파일로 내려 주고 관리자는 막힌다")
+    void exportCalendar() throws Exception {
+        when(calendarExportService.export("alice")).thenReturn("BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n");
+
+        mockMvc.perform(get("/goal/calendar.ics").with(user("alice").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Disposition", "attachment; filename=\"nado-ham.ics\""))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"));
+        mockMvc.perform(get("/goal/calendar.ics").with(user("boss").roles("ADMIN"))).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("과정 목록: 세부 테마와 개인 목표, 고를 수 있는 기간만 담고 주차별 활동 내용은 내려 주지 않는다")
+    void courses() throws Exception {
+        mockMvc.perform(get("/goal/courses").with(user("alice").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(12))
+                .andExpect(jsonPath("$[0].subTheme").exists())
+                .andExpect(jsonPath("$[0].months[3]").value(12))
+                .andExpect(jsonPath("$[0].weeks").doesNotExist())
+                .andExpect(jsonPath("$[0].stages").doesNotExist())
+                .andExpect(jsonPath("$[9].personal").value(true));
     }
 
 }

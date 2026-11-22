@@ -13,6 +13,9 @@ public interface PlannerRepository extends JpaRepository<PlannerEntity, Integer>
     // 일정 번호와 소유자 아이디가 모두 맞는 일정만 조회한다(본인 일정만 접근)
     PlannerEntity findByPlanNoAndPlanOwnerId(int planNo, String planOwnerId);
 
+    // 내보내기용: 본인의 모든 일정
+    List<PlannerEntity> findByPlanOwnerId(String planOwnerId);
+
     boolean existsByPlanNoAndPlanOwnerId(int planNo, String planOwnerId);
 
     int deleteByPlanNoAndPlanOwnerId(int planNo, String planOwnerId);

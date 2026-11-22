@@ -190,6 +190,49 @@ class GoalRetroServiceTest {
         assertThat(retro.message()).contains("한 달 과정을 마쳤어요");
     }
 
+    private void makeLongGoal(int months) {
+        ReflectionTestUtils.setField(goal, "months", months);
+        ReflectionTestUtils.setField(goal, "courseCode", "GUITAR_SONG");
+        ReflectionTestUtils.setField(goal, "endDate", START.plusDays(months * 28L - 1));
+    }
+
+    @Test
+    @DisplayName("3개월 과정: 4주 차 회고는 마지막 주가 아니고 한 달 목표를 돌아보며 다음 달 목표를 알려 준다")
+    void longCourseMonthEndRetro() {
+        makeLongGoal(3);
+        activity(4, START.plusDays(21), ActivityStatus.DONE);
+        activity(4, START.plusDays(23), ActivityStatus.DONE);
+
+        RetroResponse retro = serviceOn(START.plusDays(27)).pending(OWNER).get(0);
+
+        assertThat(retro.finalWeek()).isFalse();
+        assertThat(retro.message()).contains("1개월 차 목표").contains("다음 달 목표는");
+    }
+
+    @Test
+    @DisplayName("3개월 과정: 12주 차 회고가 마지막 주이고 3개월 과정 마무리 문구를 쓴다")
+    void longCourseFinalRetro() {
+        makeLongGoal(3);
+        activity(12, START.plusDays(77), ActivityStatus.DONE);
+        activity(12, START.plusDays(79), ActivityStatus.DONE);
+
+        RetroResponse retro = serviceOn(START.plusDays(83)).pending(OWNER).get(0);
+
+        assertThat(retro.finalWeek()).isTrue();
+        assertThat(retro.message()).contains("3개월 과정을 마쳤어요");
+    }
+
+    @Test
+    @DisplayName("종료일을 앞당기면 그 종료일 안의 마지막 주가 finalWeek 이다")
+    void shortenedEndDateMakesFinalWeek() {
+        makeLongGoal(3);
+        ReflectionTestUtils.setField(goal, "endDate", START.plusDays(27));       // 4주 차 끝으로 앞당김
+        activity(4, START.plusDays(21), ActivityStatus.DONE);
+        activity(4, START.plusDays(23), ActivityStatus.DONE);
+
+        assertThat(serviceOn(START.plusDays(27)).pending(OWNER).get(0).finalWeek()).isTrue();
+    }
+
     @Test
     @DisplayName("진행 중이 아닌 목표와 활동이 없는 목표는 회고가 없다")
     void noRetroForInactiveOrEmpty() {

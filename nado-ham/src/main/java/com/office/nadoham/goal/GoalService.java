@@ -39,6 +39,9 @@ public class GoalService {
     public static final int MAX_MINUTES = 120;
     public static final int WEEK_DAYS = 7;
     public static final int FIRST_WEEK = 1;
+    public static final int MIN_PERSONAL_GOAL = 2;
+    public static final int MAX_PERSONAL_GOAL = 60;
+    public static final int MAX_TITLE = 60;
 
     // 일정(PLAN)에 종료 시간이 없으면 시작 시간 기준 이 길이만큼 차지하는 것으로 보고 겹침을 판단한다
     public static final int ASSUMED_PLAN_MINUTES = 60;
@@ -53,17 +56,44 @@ public class GoalService {
     public List<ActivityPlan> previewFirstWeek(String ownerId, GoalRequest request) {
         log.info("previewFirstWeek()");
 
-        Course course = findCourse(request.courseCode());
+        CoursePlan plan = requirePlan(request);
         LocalDate startDate = parseStartDate(request.startDate());
         int weeklyCount = requireWeeklyCount(request.weeklyCount());
         int minutes = requireMinutes(request.minutes());
         LocalTime time = requireTime(request.startTime());
 
-        return planWeek(ownerId, course, FIRST_WEEK, startDate, weeklyCount, minutes, time, parseDays(request.days()));
+        return planWeek(ownerId, plan, FIRST_WEEK, startDate, weeklyCount, minutes, time, parseDays(request.days()));
+    }
+
+    // 미리보기와 함께 보여 줄 계획 요약: 기간, 월별 중간 목표, 끝났을 때 확인할 결과, 횟수·시간이 적을 때의 안내
+    public PlanSummary summarize(GoalRequest request) {
+        CoursePlan plan = requirePlan(request);
+        int weeklyCount = requireWeeklyCount(request.weeklyCount());
+        int minutes = requireMinutes(request.minutes());
+
+        return new PlanSummary(plan.months(), plan.totalWeeks(), plan.displayName(), plan.goalText(), plan.checkpoint(),
+                plan.milestones(), lightNote(plan.course(), weeklyCount, minutes));
+    }
+
+    // 기본 분량(주당 횟수 x 시간)의 2/3 에 못 미치면 한 번에 하는 분량을 줄여 핵심만 하라는 안내를 붙인다
+    private String lightNote(Course course, int weeklyCount, int minutes) {
+        int chosen = weeklyCount * minutes;
+        int base = course.defaultWeeklyCount() * course.defaultMinutes();
+        if (chosen * 3 >= base * 2) {
+            return null;
+        }
+
+        return "주 " + weeklyCount + "회 " + minutes + "분은 기본(주 " + course.defaultWeeklyCount() + "회 " + course.defaultMinutes()
+                + "분)보다 적어요. 계획은 그대로 따르되 한 번에 하는 분량을 줄여 핵심만 해 보세요. 어려우면 5분만 하기를 써도 돼요.";
+    }
+
+    // 계획 요약(미리보기 응답에 담긴다)
+    public record PlanSummary(int months, int totalWeeks, String name, String goal, String checkpoint,
+                              List<CoursePlan.Milestone> milestones, String note) {
     }
 
     // weekNo 주차의 계획 배치: windowStart 부터 7일 안에서 가능한 요일 중 주당 횟수만큼 고르게 고른다(겹치는 일정은 표시만 한다)
-    List<ActivityPlan> planWeek(String ownerId, Course course, int weekNo, LocalDate windowStart,
+    List<ActivityPlan> planWeek(String ownerId, CoursePlan plan, int weekNo, LocalDate windowStart,
                                 int weeklyCount, int minutes, LocalTime time, Set<DayOfWeek> days) {
         List<LocalDate> candidates = new ArrayList<>();
         for (int i = 0; i < WEEK_DAYS; i++) {
@@ -77,7 +107,7 @@ public class GoalService {
         }
 
         List<ActivityPlan> plans = new ArrayList<>();
-        List<Course.Session> sessions = course.sessionsOfWeek(weekNo);
+        List<Course.Session> sessions = plan.sessionsOfWeek(weekNo);
         for (int i = 0; i < weeklyCount; i++) {
             LocalDate date = candidates.get(i * candidates.size() / weeklyCount);      // 후보 날짜 사이를 고르게 고른다
             plans.add(toActivityPlan(ownerId, date, time, minutes, sessions.get(i % sessions.size())));
@@ -91,7 +121,8 @@ public class GoalService {
     public GoalResponse start(String ownerId, GoalRequest request) {
         log.info("start()");
 
-        Course course = findCourse(request.courseCode());
+        CoursePlan plan = requirePlan(request);
+        Course course = plan.course();
         LocalDate startDate = parseStartDate(request.startDate());
         int weeklyCount = requireWeeklyCount(request.weeklyCount());
         int minutes = requireMinutes(request.minutes());
@@ -102,7 +133,7 @@ public class GoalService {
         if (goalRepository.countByOwnerIdAndStatus(ownerId, GoalStatus.ACTIVE) >= MAX_ACTIVE_GOALS) {
             throw new GoalException("GOAL_LIMIT", "동시에 진행할 수 있는 목표는 " + MAX_ACTIVE_GOALS + "개까지입니다.");
         }
-        if (goalRepository.existsByOwnerIdAndCourseCodeAndStatus(ownerId, course.code(), GoalStatus.ACTIVE)) {
+        if (!course.personal() && goalRepository.existsByOwnerIdAndCourseCodeAndStatus(ownerId, course.code(), GoalStatus.ACTIVE)) {
             throw new GoalException("ALREADY_ACTIVE", "이미 진행 중인 같은 과정이 있습니다.");
         }
 
@@ -110,13 +141,16 @@ public class GoalService {
                 .ownerId(ownerId)
                 .courseCode(course.code())
                 .startDate(startDate)
-                .endDate(startDate.plusDays((long) CourseCatalog.COURSE_WEEKS * WEEK_DAYS - 1))
+                .endDate(startDate.plusDays((long) plan.totalWeeks() * WEEK_DAYS - 1))
                 .weeklyCount(weeklyCount)
                 .minutes(minutes)
                 .preferredTime(defaultTime)
+                .months(plan.months())
+                .level(plan.level().name())
+                .personalGoal(plan.personalGoal())
                 .build());
 
-        List<GoalActivityEntity> activities = saveWeekActivities(goal.getNo(), course, FIRST_WEEK, scheduled, minutes);
+        List<GoalActivityEntity> activities = saveWeekActivities(goal.getNo(), plan, FIRST_WEEK, scheduled, minutes);
 
         return toResponse(goal, activities);
     }
@@ -138,26 +172,27 @@ public class GoalService {
                 throw new GoalException("INVALID_SLOTS", "같은 날에 활동을 두 번 넣을 수 없습니다.");
             }
             LocalTime time = slot.time() == null || slot.time().isBlank() ? defaultTime : requireTime(slot.time());
-            scheduled.add(new ScheduledSlot(date, time));
+            scheduled.add(new ScheduledSlot(date, time, requireTitle(slot.title())));
         }
         scheduled.sort(Comparator.comparing(ScheduledSlot::date));
 
         return scheduled;
     }
 
-    // weekNo 주차의 활동을 과정의 해당 주 활동 이름·안내로 저장한다
-    List<GoalActivityEntity> saveWeekActivities(int goalNo, Course course, int weekNo, List<ScheduledSlot> scheduled, int minutes) {
-        List<Course.Session> sessions = course.sessionsOfWeek(weekNo);
+    // weekNo 주차의 활동을 과정의 해당 주 활동 이름·안내로 저장한다. 개인 목표 과정은 사용자가 고친 이름이 있으면 그것을 쓴다
+    List<GoalActivityEntity> saveWeekActivities(int goalNo, CoursePlan plan, int weekNo, List<ScheduledSlot> scheduled, int minutes) {
+        List<Course.Session> sessions = plan.sessionsOfWeek(weekNo);
         List<GoalActivityEntity> activities = new ArrayList<>();
         for (int i = 0; i < scheduled.size(); i++) {
             Course.Session session = sessions.get(i % sessions.size());
+            String title = plan.course().personal() && scheduled.get(i).title() != null ? scheduled.get(i).title() : session.title();
             activities.add(GoalActivityEntity.builder()
                     .goalNo(goalNo)
                     .weekNo(weekNo)
                     .actDate(scheduled.get(i).date())
                     .startTime(scheduled.get(i).time())
                     .minutes(minutes)
-                    .title(session.title())
+                    .title(title)
                     .guide(session.guide())
                     .build());
         }
@@ -221,15 +256,66 @@ public class GoalService {
     }
 
     GoalResponse toResponse(GoalEntity goal, List<GoalActivityEntity> activities) {
-        Course course = CourseCatalog.find(goal.getCourseCode()).orElseThrow();
+        CoursePlan plan = CoursePlan.of(goal);
+        Course course = plan.course();
 
         List<GoalResponse.ActivityResponse> activityResponses = activities.stream()
                 .map(GoalResponse.ActivityResponse::from)
                 .toList();
 
-        return new GoalResponse(goal.getNo(), course.code(), course.theme(), course.name(), course.checkpoint(),
+        // 지금 달: 가장 최근에 계획한 주가 속한 달(활동이 없으면 첫 달)
+        int latestWeek = activities.stream().mapToInt(GoalActivityEntity::getWeekNo).max().orElse(FIRST_WEEK);
+        int currentMonth = plan.monthOf(latestWeek);
+        List<GoalResponse.MilestoneResponse> milestones = plan.milestones().stream()
+                .map(milestone -> GoalResponse.MilestoneResponse.of(milestone, currentMonth))
+                .toList();
+
+        return new GoalResponse(goal.getNo(), course.code(), course.theme(), course.subTheme(), plan.displayName(), plan.checkpoint(),
                 goal.getStartDate().toString(), goal.getEndDate().toString(), goal.getWeeklyCount(), goal.getMinutes(),
-                StartTimes.format(goal.getPreferredTime()), goal.getStatus().name(), activityResponses);
+                StartTimes.format(goal.getPreferredTime()), goal.getStatus().name(), plan.months(), plan.level().name(),
+                goal.getPersonalGoal(), currentMonth, plan.totalWeeks(), milestones, activityResponses);
+    }
+
+    // 요청에서 과정·기간·수준·개인 목표 문장을 검증해 계획으로 만든다
+    CoursePlan requirePlan(GoalRequest request) {
+        Course course = findCourse(request.courseCode());
+        int months = requireMonths(request.months());
+        GoalLevel level = GoalLevel.parse(request.level())
+                .orElseThrow(() -> new GoalException("INVALID_LEVEL", "현재 수준은 처음 시작 또는 해 본 적 있음 중에서 골라 주세요."));
+
+        return new CoursePlan(course, months, level, course.personal() ? requirePersonalGoal(request.personalGoal()) : null);
+    }
+
+    int requireMonths(Integer months) {
+        int value = months == null ? 1 : months;
+        if (!CoursePlan.MONTH_OPTIONS.contains(value)) {
+            throw new GoalException("INVALID_MONTHS", "기간은 1·3·6·12개월 중에서 골라 주세요.");
+        }
+
+        return value;
+    }
+
+    String requirePersonalGoal(String raw) {
+        String goal = raw == null ? "" : raw.strip();
+        if (goal.length() < MIN_PERSONAL_GOAL || goal.length() > MAX_PERSONAL_GOAL || goal.chars().anyMatch(Character::isISOControl)) {
+            throw new GoalException("INVALID_PERSONAL_GOAL", "개인 목표는 " + MIN_PERSONAL_GOAL + "~" + MAX_PERSONAL_GOAL + "자 한 문장으로 적어 주세요.");
+        }
+
+        return goal;
+    }
+
+    // 개인 목표 활동 이름(비어 있으면 서버 기본 이름을 쓴다)
+    private String requireTitle(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+
+        String title = raw.strip();
+        if (title.length() > MAX_TITLE || title.chars().anyMatch(Character::isISOControl)) {
+            throw new GoalException("INVALID_TITLE", "활동 이름은 " + MAX_TITLE + "자 이내로 적어 주세요.");
+        }
+
+        return title;
     }
 
     Course findCourse(String code) {
@@ -302,7 +388,7 @@ public class GoalService {
         return result;
     }
 
-    record ScheduledSlot(LocalDate date, LocalTime time) {
+    record ScheduledSlot(LocalDate date, LocalTime time, String title) {
     }
 
 }

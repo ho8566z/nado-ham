@@ -40,23 +40,36 @@ async function loadCourses() {
 
     let list = document.getElementById('course_list');
     list.replaceChildren();
-    (await response.json()).forEach(function (course) {
-        let button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'course';
+    let courses = await response.json();
+    ['운동', '공부', '자기개발'].forEach(function (theme) {
+        let heading = document.createElement('h4');
+        heading.className = 'theme_heading';
+        heading.textContent = theme;
+        let group = document.createElement('div');
+        group.className = 'course_group';
 
-        let theme = document.createElement('span');
-        theme.className = 'theme';
-        theme.textContent = course.theme;
-        let name = document.createElement('strong');
-        name.textContent = course.name;
-        let goal = document.createElement('span');
-        goal.className = 'goal_text';
-        goal.textContent = '1개월 · 기본 주 ' + course.defaultWeeklyCount + '회 · ' + course.defaultMinutes + '분';
-        button.append(theme, name, goal);
+        courses.filter(function (course) { return course.theme === theme; }).forEach(function (course) {
+            let button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'course';
+            button.classList.toggle('personal', course.personal);
 
-        button.addEventListener('click', function () { selectCourse(course, button); });
-        list.appendChild(button);
+            let sub = document.createElement('span');
+            sub.className = 'theme';
+            sub.textContent = course.subTheme;
+            let name = document.createElement('strong');
+            name.textContent = course.name;
+            let goal = document.createElement('span');
+            goal.className = 'goal_text';
+            goal.textContent = course.personal
+                ? '내가 정한 목표 · 1개월~1년'
+                : '1개월~1년 · 기본 주 ' + course.defaultWeeklyCount + '회 · ' + course.defaultMinutes + '분';
+            button.append(sub, name, goal);
+
+            button.addEventListener('click', function () { selectCourse(course, button); });
+            group.appendChild(button);
+        });
+        list.append(heading, group);
     });
 }
 
@@ -71,6 +84,8 @@ function selectCourse(course, button) {
     document.getElementById('course_goal').textContent = course.goal;
     form.elements['weekly_count'].value = String(course.defaultWeeklyCount);
     form.elements['minutes'].value = String(course.defaultMinutes);
+    document.getElementById('personal_goal_label').hidden = !course.personal;
+    form.elements['personal_goal'].required = course.personal;
     document.getElementById('preview').hidden = true;
     showMessage('');
 }
@@ -87,7 +102,10 @@ function conditionBody() {
         weeklyCount: parseInt(form.elements['weekly_count'].value, 10),
         minutes: parseInt(form.elements['minutes'].value, 10),
         startTime: form.elements['start_time'].value,
-        days: days
+        days: days,
+        months: parseInt(form.elements['months'].value, 10),
+        level: form.elements['level'].value,
+        personalGoal: selected_course.personal ? form.elements['personal_goal'].value : null
     };
 }
 
@@ -109,7 +127,52 @@ async function requestPreview() {
     }
 
     showMessage('');
+    renderSummary(result.data.summary);
     renderPreview(result.data.activities);
+}
+
+// 계획 요약: 기간, 월별 중간 목표, 끝났을 때 확인할 결과, 분량 안내
+function renderSummary(summary) {
+    let box = document.getElementById('plan_summary');
+    box.replaceChildren();
+
+    let head = document.createElement('p');
+    head.className = 'summary_head';
+    head.textContent = summary.name + ' · ' + (summary.months === 1 ? '1개월' : summary.months + '개월') + '(' + summary.totalWeeks + '주)';
+    box.appendChild(head);
+
+    if (summary.months > 1) {
+        box.appendChild(milestoneList(summary.milestones.map(function (m) {
+            return {month: m.month, name: m.name, goal: m.goal, state: 'UPCOMING'};
+        })));
+    }
+
+    let end = document.createElement('p');
+    end.className = 'summary_end';
+    end.textContent = '끝났을 때 확인할 결과: ' + summary.checkpoint;
+    box.appendChild(end);
+
+    if (summary.note) {
+        let note = document.createElement('p');
+        note.className = 'summary_note';
+        note.textContent = summary.note;
+        box.appendChild(note);
+    }
+}
+
+// 월별 중간 목표 목록(state: DONE 지난 달 · CURRENT 지금 달 · UPCOMING 앞으로 올 달)
+function milestoneList(milestones) {
+    let list = document.createElement('ol');
+    list.className = 'milestones';
+    milestones.forEach(function (m) {
+        let item = document.createElement('li');
+        item.className = m.state.toLowerCase();
+        let mark = {DONE: '✓ ', CURRENT: '▶ ', UPCOMING: ''}[m.state] || '';
+        item.textContent = mark + m.month + '개월 차 · ' + m.name + ' — ' + m.goal;
+        list.appendChild(item);
+    });
+
+    return list;
 }
 
 function renderPreview(activities) {
@@ -130,8 +193,18 @@ function renderPreview(activities) {
         time.value = activity.startTime;
         time.className = 'slot_time';
 
-        let title = document.createElement('strong');
-        title.textContent = activity.title + ' (' + activity.minutes + '분)';
+        let title;
+        if (selected_course && selected_course.personal) {
+            // 개인 목표는 활동 이름을 직접 고칠 수 있다
+            title = document.createElement('input');
+            title.type = 'text';
+            title.className = 'slot_title';
+            title.maxLength = 60;
+            title.value = activity.title;
+        } else {
+            title = document.createElement('strong');
+            title.textContent = activity.title + ' (' + activity.minutes + '분)';
+        }
         let guide = document.createElement('span');
         guide.className = 'guide';
         guide.textContent = activity.guide;
@@ -152,7 +225,8 @@ function renderPreview(activities) {
 async function startGoal() {
     let body = conditionBody();
     body.slots = Array.from(document.querySelectorAll('#preview_list li')).map(function (item) {
-        return {date: item.querySelector('.slot_date').value, time: item.querySelector('.slot_time').value};
+        let title = item.querySelector('.slot_title');
+        return {date: item.querySelector('.slot_date').value, time: item.querySelector('.slot_time').value, title: title ? title.value : null};
     });
     // 시작일을 비웠으면 서버가 오늘로 정하므로, 확정 요청에도 같은 기준(미리보기 첫 날짜 이전 = 오늘)을 쓰게 비워 둔다
 
@@ -225,6 +299,12 @@ function goalActions(goal, card) {
         edit.textContent = '횟수·시간 수정';
         edit.addEventListener('click', function () { toggleSettingsForm(goal, card); });
         box.appendChild(edit);
+
+        let endEdit = document.createElement('button');
+        endEdit.type = 'button';
+        endEdit.textContent = '종료일 수정';
+        endEdit.addEventListener('click', function () { toggleEndDateForm(goal, card); });
+        box.appendChild(endEdit);
     }
 
     if (isPaused) {
@@ -235,6 +315,59 @@ function goalActions(goal, card) {
     }
 
     return box;
+}
+
+// 종료일 수정 폼: 늘리면 활동을 옮길 수 있는 기간이 늘고, 줄이면 종료일 뒤에 시작하는 주 앞의 주가 마지막 주가 된다
+function toggleEndDateForm(goal, card) {
+    let existing = card.querySelector('.end_form');
+    if (existing) {
+        existing.remove();
+        return;
+    }
+
+    let form = document.createElement('form');
+    form.className = 'settings_form end_form';
+
+    let date = document.createElement('input');
+    date.type = 'date';
+    date.name = 'end_date';
+    date.value = goal.endDate;
+    date.required = true;
+
+    let hint = document.createElement('p');
+    hint.className = 'settings_hint';
+    hint.textContent = '종료일은 오늘 이후, 이미 계획한 마지막 활동 날짜 이후로만 줄일 수 있고 지금 종료일에서 1년까지 늘릴 수 있어요. 종료일을 줄이면 그 안에서 마지막 주가 정해져 과정을 일찍 마무리해요.';
+
+    let label = document.createElement('label');
+    label.append('종료일 ', date);
+    let save = document.createElement('button');
+    save.type = 'submit';
+    save.textContent = '저장';
+
+    form.append(label, hint, save);
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        save.disabled = true;
+        let response = await fetch('/goal/' + goal.no + '/end-date', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({endDate: date.value})
+        });
+        let data = await response.json().catch(function () { return {}; });
+        save.disabled = false;
+
+        if (!response.ok) {
+            showMessage(data.message || '종료일을 바꾸지 못했습니다.', true);
+            return;
+        }
+
+        showMessage('종료일을 ' + data.endDate + '(으)로 바꿨어요.');
+        loadGoals();
+        if (typeof loadRetros === 'function') {
+            loadRetros();
+        }
+    });
+    card.appendChild(form);
 }
 
 // 실행 조건 수정 폼(카드 안에서 열고 닫는다)
@@ -385,12 +518,23 @@ async function loadGoals() {
         card.classList.toggle('paused', goal.status === 'PAUSED');
 
         let title = document.createElement('strong');
-        title.textContent = '[' + goal.theme + '] ' + goal.courseName + goalStatusLabel(goal.status);
+        title.textContent = '[' + goal.theme + (goal.subTheme ? ' · ' + goal.subTheme : '') + '] ' + goal.courseName + goalStatusLabel(goal.status);
         let period = document.createElement('span');
         period.className = 'period';
-        period.textContent = goal.startDate + ' ~ ' + goal.endDate + ' · 주 ' + goal.weeklyCount + '회 · ' + goal.minutes + '분 · ' + goal.startTime + ' 시작'
-            + remainingText(goal);
+        period.textContent = goal.startDate + ' ~ ' + goal.endDate + ' (' + (goal.months === 1 ? '1개월' : goal.months + '개월') + ') · 주 '
+            + goal.weeklyCount + '회 · ' + goal.minutes + '분 · ' + goal.startTime + ' 시작' + remainingText(goal);
         card.append(title, period);
+
+        if (goal.months > 1) {
+            let current = goal.milestones.filter(function (m) { return m.state === 'CURRENT'; })[0];
+            if (current && goal.status !== 'DONE') {
+                let now = document.createElement('span');
+                now.className = 'month_goal';
+                now.textContent = '이번 달(' + current.month + '개월 차) 목표: ' + current.goal;
+                card.appendChild(now);
+            }
+            card.appendChild(milestoneList(goal.milestones));
+        }
 
         let checkpoint = document.createElement('span');
         checkpoint.className = 'checkpoint';
