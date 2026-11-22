@@ -1,10 +1,10 @@
-# CALENDAR BOT
+# 나도 함(nado-ham)
 
-<p align="center"><img src="https://raw.githubusercontent.com/ho8566z/calendar-bot_word/main/ppt/calendar_bot_new/%EC%8A%AC%EB%9D%BC%EC%9D%B4%EB%93%9C1.PNG" alt="CALENDAR BOT 표지" width="100%"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/calendar_bot_new/%EC%8A%AC%EB%9D%BC%EC%9D%B4%EB%93%9C1.PNG" alt="나도 함(nado-ham) 표지" width="100%"></p>
 
 일정을 기록하고, 다음 주를 미리 받아보는 개인 일정 관리 웹 서비스입니다. (1차 개인 프로젝트, 2026.11)
 
-명세서와 발표 자료는 문서 저장소 [calendar-bot_word](https://github.com/ho8566z/calendar-bot_word)에 있습니다.
+명세서와 발표 자료는 문서 저장소 [nado-ham_word](https://github.com/ho8566z/nado-ham_word)에 있습니다.
 
 ## 프로젝트 요약
 
@@ -17,7 +17,7 @@
 
 | 홈 | 달력 | 통계 |
 | --- | --- | --- |
-| <img src="https://raw.githubusercontent.com/ho8566z/calendar-bot_word/main/ppt/%EC%BA%A1%EC%B2%98/01_%ED%99%88.png" width="100%"> | <img src="https://raw.githubusercontent.com/ho8566z/calendar-bot_word/main/ppt/%EC%BA%A1%EC%B2%98/02_%EB%8B%AC%EB%A0%A5.jpg" width="100%"> | <img src="https://raw.githubusercontent.com/ho8566z/calendar-bot_word/main/ppt/%EC%BA%A1%EC%B2%98/03_%ED%86%B5%EA%B3%84.jpg" width="100%"> |
+| <img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/%EC%BA%A1%EC%B2%98/01_%ED%99%88.png" width="100%"> | <img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/%EC%BA%A1%EC%B2%98/02_%EB%8B%AC%EB%A0%A5.jpg" width="100%"> | <img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/%EC%BA%A1%EC%B2%98/03_%ED%86%B5%EA%B3%84.jpg" width="100%"> |
 
 ## 주요 기능
 
@@ -39,7 +39,7 @@
 
 ## 문서
 
-설계와 결정 내용은 [calendar-bot_word](https://github.com/ho8566z/calendar-bot_word)에서 볼 수 있습니다.
+설계와 결정 내용은 [nado-ham_word](https://github.com/ho8566z/nado-ham_word)에서 볼 수 있습니다.
 
 - 명세서 모음(엑셀): 프로젝트 개요, 요구·기능·API·화면·테이블 명세서, WBS, 트러블슈팅, 결정 기록
 - 발표 자료: 23장 PPT와 PDF
@@ -62,7 +62,7 @@
 3. 실행합니다.
 
    ```powershell
-   cd calendar
+   cd nado-ham
    .\gradlew.bat bootRun
    ```
 
@@ -71,20 +71,20 @@
 ## 테스트
 
 ```powershell
-cd calendar
+cd nado-ham
 $env:JAVA_TOOL_OPTIONS = '-Dfile.encoding=UTF-8'
 .\gradlew.bat test
 ```
 
-- 318개 중 317개는 DB 없이 통과합니다. `CalendarApplicationTests`(contextLoads) 1개는 위의 DB·메일·관리자 환경변수가 있어야 통과합니다.
+- 318개 중 317개는 DB 없이 통과합니다. `NadoHamApplicationTests`(contextLoads) 1개는 위의 DB·메일·관리자 환경변수가 있어야 통과합니다.
 - 소유자 검증, 로그인 잠금, 연동 코드 만료·재사용 방지, 브리핑 대상 선정, 화면 템플릿 렌더링, 모바일 CSS 규칙 등을 검사합니다.
 - 이 밖에 실제 MySQL로 가입 → 승인 → 로그인 → 일정 → 검색 → 통계 → 소유자 검증 → 브리핑 흐름을 실행해 확인했습니다.
 
 ## 폴더 구조
 
 ```
-calendar/
-  src/main/java/com/office/calendar/
+nado-ham/
+  src/main/java/com/office/nadoham/
     config/     보안 설정, 시간·스케줄러 설정
     member/     회원, 로그인, 로그인 잠금(LOGIN_LOCK)
     planner/    일정(달력, 검색, 통계, 이미지 업로드)
