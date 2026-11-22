@@ -58,6 +58,7 @@
    | `MAIL_USERNAME`, `MAIL_PASSWORD` | 비밀번호 찾기 메일(Gmail 앱 비밀번호) | 필수(임시 값도 됨) |
    | `ADMIN_ID`, `ADMIN_PASSWORD`, `ADMIN_MAIL` | 첫 관리자 계정(비어 있으면 만들지 않음) | 선택 |
    | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | 텔레그램 봇(비어 있으면 연동·발송만 막히고 앱은 뜸) | 선택 |
+   | `TELEGRAM_POLLING_ENABLED`, `BRIEF_SCHEDULER_ENABLED`, `GOAL_NOTIFY_ENABLED` | 텔레그램 연동 폴링·주간 브리핑·목표 알림 켜기(**기본 false**, 봇 토큰과 함께 true 로 줘야 동작) | 선택 |
    | `LOGIN_MAX_FAIL`, `LOGIN_LOCK_MINUTES` | 로그인 잠금 횟수(5)와 시간(10분) | 선택 |
    | `GOAL_NOTIFY_*` | 목표 알림 설정(`application.properties`의 `goal.notify.*`: 허용 지연 30분, 재시도 3회·3분 간격, 회고 알림 21시 등) | 선택 |
    | `SERVER_PORT` | 포트(기본 8090) | 선택 |

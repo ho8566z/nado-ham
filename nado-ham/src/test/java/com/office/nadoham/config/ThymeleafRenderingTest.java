@@ -215,9 +215,40 @@ class ThymeleafRenderingTest {
         assertThat(admin).contains("href=\"/admin/users\"").contains("href=\"/admin/goal-metrics\"").doesNotContain("href=\"/planner\"");
     }
 
+    // 텔레그램 기능을 켠 환경(telegram.polling.enabled=true)에서만 내 정보 화면에 연동 영역이 나온다
+    private void withTelegramEnabled(ThrowingRunnable action) throws Exception {
+        org.springframework.core.env.ConfigurableEnvironment env = (org.springframework.core.env.ConfigurableEnvironment) context.getEnvironment();
+        org.springframework.mock.env.MockPropertySource source = new org.springframework.mock.env.MockPropertySource("telegramOn")
+                .withProperty("telegram.polling.enabled", "true");
+        env.getPropertySources().addFirst(source);
+        try {
+            action.run();
+        } finally {
+            env.getPropertySources().remove("telegramOn");
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws Exception;
+    }
+
     @Test
-    @DisplayName("내 정보 화면: 텔레그램 영역은 USER 에게만 렌더링된다")
+    @DisplayName("내 정보 화면: 텔레그램 기능이 꺼져 있으면(기본) 연동 영역과 목표 알림 토글이 렌더링되지 않는다")
+    void telegramSectionHiddenWhenDisabled() throws Exception {
+        String user = withoutComments(render("/member/modify", asUser()));
+
+        assertThat(user).doesNotContain("id=\"telegram\"").doesNotContain("tg_link_btn").doesNotContain("tg_goal_toggle");
+        assertThat(user).contains("value=\"alice\"");        // 나머지 내 정보 폼은 그대로
+    }
+
+    @Test
+    @DisplayName("내 정보 화면: 텔레그램 영역은 기능을 켠 환경에서 USER 에게만 렌더링된다")
     void telegramSectionOnlyForUser() throws Exception {
+        withTelegramEnabled(this::checkTelegramSectionOnlyForUser);
+    }
+
+    private void checkTelegramSectionOnlyForUser() throws Exception {
         String user = withoutComments(render("/member/modify", asUser()));
         assertThat(user).contains("id=\"telegram\"").contains("id=\"tg_link_btn\"").contains("id=\"tg_goal_toggle\"").contains("src=\"/js/member_telegram.js\"")
                 .contains("href=\"/css/member_telegram.css\"").contains("value=\"alice\"");

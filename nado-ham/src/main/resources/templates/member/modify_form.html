@@ -45,7 +45,8 @@
             </form>
 
             <!-- 텔레그램 주간 브리핑(USER만): 연동하면 매주 일요일 저녁에 다음 주 일정을 텔레그램으로 보내 준다 -->
-            <div id="telegram" class="telegram" sec:authorize="hasRole('USER')">
+            <div id="telegram" class="telegram" sec:authorize="hasRole('USER')"
+                 th:if="${@environment.getProperty('telegram.polling.enabled', 'false') == 'true'}">
                 <h3>TELEGRAM BRIEF</h3>
 
                 <p id="tg_message" class="tg_message" role="status"></p>
