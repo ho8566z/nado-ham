@@ -1,6 +1,6 @@
-# 나도 함(nado-ham)
+# nado-ham
 
-<p align="center"><img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/calendar_bot_new/%EC%8A%AC%EB%9D%BC%EC%9D%B4%EB%93%9C1.PNG" alt="나도 함(nado-ham) 표지" width="100%"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/calendar_bot_new/%EC%8A%AC%EB%9D%BC%EC%9D%B4%EB%93%9C1.PNG" alt="nado-ham 표지" width="100%"></p>
 
 일정을 기록하고, 다음 주를 미리 받아보는 개인 일정 관리 웹 서비스입니다. (1차 개인 프로젝트, 2026.11)
 
