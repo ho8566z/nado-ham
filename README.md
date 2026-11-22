@@ -1,6 +1,6 @@
 # nado-ham
 
-<p align="center"><img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/calendar_bot_new/%EC%8A%AC%EB%9D%BC%EC%9D%B4%EB%93%9C1.PNG" alt="nado-ham 표지" width="100%"></p>
+![nado-ham 표지](docs/ppt/slide-01.jpg)
 
 일정을 기록하고, 다음 주를 미리 받아보며, 장기 목표를 오늘 할 수 있는 행동으로 바꿔 주는 개인 일정 관리 웹 서비스입니다. (1차 개인 프로젝트, 2026.11)
 
@@ -15,9 +15,13 @@
 
 ## 화면
 
-| 홈 | 달력 | 통계 |
-| --- | --- | --- |
-| <img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/%EC%BA%A1%EC%B2%98/01_%ED%99%88.png" width="100%"> | <img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/%EC%BA%A1%EC%B2%98/02_%EB%8B%AC%EB%A0%A5.jpg" width="100%"> | <img src="https://raw.githubusercontent.com/ho8566z/nado-ham_word/main/ppt/%EC%BA%A1%EC%B2%98/03_%ED%86%B5%EA%B3%84.jpg" width="100%"> |
+발표 PPT의 구현 화면 슬라이드입니다.
+
+| 월간 달력 · 검색 · 통계 | 목표 실행 |
+| --- | --- |
+| ![월간 달력·검색·통계](docs/ppt/slide-23.jpg) | ![목표 실행](docs/ppt/slide-24.jpg) |
+| **주간 보기** | **모바일(768px 이하)** |
+| ![주간 보기](docs/ppt/slide-25.jpg) | ![모바일 화면](docs/ppt/slide-20.jpg) |
 
 ## 주요 기능
 
@@ -39,12 +43,27 @@
 | 연동 | Telegram Bot API(롱 폴링으로 연동, 브리핑·목표 알림 발송), Gmail SMTP(비밀번호 찾기) |
 | 테스트 | JUnit 5, MockMvc, AssertJ |
 
+## 발표 자료
+
+28장 발표 PPT(PART 1 기획 · PART 2 설계·개발 · PART 3 구현·마무리)의 주요 장면입니다. 전체 슬라이드와 PPTX·PDF 원본은 [nado-ham_word](https://github.com/ho8566z/nado-ham_word/tree/main/ppt_output) 저장소에 있습니다.
+
+| | |
+| --- | --- |
+| ![프로젝트 규모](docs/ppt/slide-04.jpg) | ![차별화 포인트](docs/ppt/slide-06.jpg) |
+| 담당 범위와 규모 (요구 68 · 기능 50 · 테이블 9 · 테스트 477) | 유사 서비스 분석과 차별화 포인트 |
+| ![수행 절차 WBS](docs/ppt/slide-10.jpg) | ![시스템 구성도](docs/ppt/slide-12.jpg) |
+| 수행 절차 · WBS | 시스템 구성도 |
+| ![DB 테이블 구조](docs/ppt/slide-14.jpg) | ![핵심 구현 주간 브리핑](docs/ppt/slide-16.jpg) |
+| DB 테이블 구조 | 핵심 구현 ① 주간 브리핑 |
+| ![핵심 구현 보안](docs/ppt/slide-18.jpg) | ![프로젝트 평가](docs/ppt/slide-28.jpg) |
+| 핵심 구현 ③ 보안 | 프로젝트 평가 |
+
 ## 문서
 
 설계와 결정 내용은 [nado-ham_word](https://github.com/ho8566z/nado-ham_word)에서 볼 수 있습니다.
 
 - 명세서 모음(엑셀): 프로젝트 개요, 요구·기능·API·화면·테이블 명세서, WBS, 트러블슈팅, 결정 기록
-- 발표 자료: 23장 PPT와 PDF
+- 발표 자료: 28장 PPT와 PDF(`ppt_output/`)
 
 ## 실행 방법
 
@@ -80,7 +99,7 @@ $env:JAVA_TOOL_OPTIONS = '-Dfile.encoding=UTF-8'
 .\gradlew.bat test
 ```
 
-- 402개 중 401개는 DB 없이 통과합니다. `NadoHamApplicationTests`(contextLoads) 1개는 위의 DB·메일·관리자 환경변수가 있어야 통과하며, 이때 개발 DB에 새 테이블·컬럼이 자동으로 추가됩니다(`ddl-auto=update`).
+- 마지막 전체 실행에서 477개가 모두 통과했습니다(실패 0). `NadoHamApplicationTests`(contextLoads)는 위의 DB·메일·관리자 환경변수가 있어야 통과하며, 이때 개발 DB에 새 테이블·컬럼이 자동으로 추가됩니다(`ddl-auto=update`).
 - 소유자 검증, 로그인 잠금, 연동 코드 만료·재사용 방지, 브리핑 대상 선정, 목표 계획·오늘 탭·회고 규칙, 알림 선점·재시도·포기, 화면 템플릿 렌더링, 모바일 CSS 규칙 등을 검사합니다.
 - 이 밖에 실제 MySQL로 가입 → 승인 → 로그인 → 일정 → 검색 → 통계 → 소유자 검증 → 브리핑 흐름과, 가짜 텔레그램 서버로 목표 알림 발송·실패 후 재시도·중복 없음, 브라우저에서 오늘 탭·회고 → 다음 주 계획 → 마무리 흐름을 실행해 확인했습니다.
 
@@ -107,7 +126,7 @@ nado-ham/
 
 - **휴대폰 실기기**: 브라우저의 좁은 폭과 실제 휴대폰 접속으로 주요 화면을 확인했고, 모든 화면을 하나하나 확인하지는 못했습니다.
 - 승인한 권한은 이미 로그인한 사용자가 다시 로그인해야 반영됩니다.
-- **텔레그램 수신**: 주간 브리핑과 목표 알림은 가짜 텔레그램 서버로 발송·재시도를 확인했고, 실제 봇으로 받는 것은 확인하지 못했습니다.
+- **텔레그램 수신**: 주간 브리핑과 목표 알림은 가짜 텔레그램 서버로 발송·재시도를 확인했고, 실제 봇으로 수신하는 것도 확인했습니다. 알림은 기본 꺼짐이라 환경변수로 켜야 동작합니다.
 - 외부 캘린더 연동은 .ics 파일 내려받기(가져오기 방식)까지이고, 구글·애플 캘린더와의 자동 동기화(구독·OAuth)는 없습니다. 달력에서 활동 이동·시간 수정은 주간 보기에서만 됩니다(월간 달력은 읽기 전용).
 - 종료 시간이 없는 일정은 목표 활동과의 겹침을 일정 시작 후 60분으로 가정합니다(종료 시간을 넣으면 그 시간까지로 판단). 종료 시간은 같은 날 안에서만 쓸 수 있습니다(자정을 넘기는 일정 불가).
 
