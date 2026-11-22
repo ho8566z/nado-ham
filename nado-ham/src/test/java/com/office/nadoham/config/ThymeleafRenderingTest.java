@@ -116,6 +116,11 @@ class ThymeleafRenderingTest {
             return "planner/stats";
         }
 
+        @GetMapping("/goal")
+        String goal() {
+            return "goal/home";
+        }
+
         @GetMapping("/admin/users")
         String adminUsers() {
             return "admin/users";
@@ -154,7 +159,7 @@ class ThymeleafRenderingTest {
     void allPagesRender() throws Exception {
         String[][] pages = {
                 {"/", null}, {"/member/signin", null}, {"/member/signup", null},
-                {"/member/modify", "user"}, {"/planner", "user"}, {"/planner/stats", "user"}, {"/admin/users", "admin"}};
+                {"/member/modify", "user"}, {"/planner", "user"}, {"/planner/stats", "user"}, {"/goal", "user"}, {"/admin/users", "admin"}};
 
         for (String[] page : pages) {
             String html = page[1] == null ? render(page[0])
@@ -227,6 +232,16 @@ class ThymeleafRenderingTest {
         String body = withoutComments(render("/planner/stats", asUser()));
 
         assertThat(body).contains("src=\"/js/planner_stats.js\"").contains("href=\"/css/planner_stats.css\"").contains("id=\"weekday_rows\"");
+    }
+
+    @Test
+    @DisplayName("목표 화면은 오늘·목표 탭, 오늘 탭 영역(놓친 활동·오늘 할 일·다음 안내)과 두 스크립트를 가진다")
+    void goalPage() throws Exception {
+        String body = withoutComments(render("/goal", asUser()));
+
+        assertThat(body).contains("id=\"tab_btn_today\"").contains("id=\"tab_btn_goals\"");
+        assertThat(body).contains("id=\"tab_today\"").contains("id=\"missed_list\"").contains("id=\"today_list\"").contains("id=\"next_info\"");
+        assertThat(body).contains("src=\"/js/goal.js\"").contains("src=\"/js/goal_today.js\"");
     }
 
 }

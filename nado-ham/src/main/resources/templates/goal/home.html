@@ -11,6 +11,7 @@
     <link rel="stylesheet" th:href="@{/css/goal.css}">
 
     <script th:src="@{/js/goal.js}" defer></script>
+    <script th:src="@{/js/goal_today.js}" defer></script>
 
 </head>
 <body>
@@ -29,6 +30,29 @@
 
             <!-- 처리 결과·오류 안내 -->
             <p id="message" class="message" role="status"></p>
+
+            <!-- 탭: 처음에는 오늘이 보인다 -->
+            <div class="tabs" role="tablist">
+                <button type="button" id="tab_btn_today" class="tab selected" role="tab" aria-selected="true" data-tab="today">오늘</button>
+                <button type="button" id="tab_btn_goals" class="tab" role="tab" aria-selected="false" data-tab="goals">목표</button>
+            </div>
+
+            <!-- 오늘 탭: 오늘 할 활동, 놓친 활동, 다음 예정 -->
+            <div id="tab_today" class="tab_panel">
+                <p id="today_date" class="today_date"></p>
+
+                <div id="missed_wrap" hidden>
+                    <h3>놓친 활동</h3>
+                    <p class="hint">괜찮아요. 오늘 5분만 하거나, 빈 날로 옮기거나, 이번에는 건너뛸 수 있어요.</p>
+                    <div id="missed_list" class="card_list"></div>
+                </div>
+
+                <h3>오늘 할 일</h3>
+                <div id="today_list" class="card_list"></div>
+                <p id="next_info" class="next_info" hidden></p>
+            </div>
+
+            <div id="tab_goals" class="tab_panel" hidden>
 
             <!-- 진행 중인 목표 -->
             <h3>내 목표</h3>
@@ -77,6 +101,8 @@
                 <h3>첫 주 계획 확인</h3>
                 <ul id="preview_list"></ul>
                 <button type="button" id="btn_start">이 계획으로 시작</button>
+            </div>
+
             </div>
 
         </div>

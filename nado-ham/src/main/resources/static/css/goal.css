@@ -126,8 +126,148 @@ section {
     padding-left: 18px;
 }
 
+.tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.tabs .tab {
+    flex: 1;
+    padding: 10px 0;
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.tabs .tab.selected {
+    border-color: #6c5ce7;
+    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.25);
+    font-weight: bold;
+}
+
+.tab_panel[hidden],
+#missed_wrap[hidden],
+.today_card .extra[hidden],
+.next_info[hidden] {
+    display: none;
+}
+
+.today_date {
+    margin: 0 0 8px;
+    font-size: 14px;
+    opacity: 0.75;
+}
+
+.hint {
+    margin: 0 0 8px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.card_list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.today_card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.today_card.missed {
+    border-color: #e67e22;
+}
+
+.today_card.finished {
+    opacity: 0.75;
+}
+
+.today_card .when,
+.today_card .progress {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.today_card .guide {
+    margin: 0;
+}
+
+.today_card .done_label {
+    font-weight: bold;
+    color: #27ae60;
+}
+
+.today_card .buttons,
+.today_card .extra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.today_card .extra {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+    border-top: 1px dashed var(--line);
+}
+
+.today_card .extra p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.today_card button {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.today_card button.conflict {
+    border-color: #e67e22;
+}
+
+.today_card button.quiet {
+    opacity: 0.7;
+}
+
+.today_card button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.next_info {
+    padding: 12px;
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.link_button {
+    padding: 0;
+    background: none;
+    border: 0;
+    color: #6c5ce7;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 @media (max-width: 768px) {
     #section_wrap {
         padding: 0 12px;
+    }
+
+    .today_card .buttons button {
+        flex: 1 1 auto;
+        min-height: 40px;
     }
 }
