@@ -176,7 +176,7 @@ public class GoalService {
     }
 
     // 같은 날 시작 시간이 있는 일정 중 활동 시간대와 겹치는 첫 일정(시간 없는 일정은 겹침으로 보지 않는다)
-    private PlannerDto findConflict(String ownerId, LocalDate date, LocalTime time, int minutes) {
+    PlannerDto findConflict(String ownerId, LocalDate date, LocalTime time, int minutes) {
         LocalTime end = time.plusMinutes(minutes);
         boolean wraps = end.isBefore(time);        // 자정을 넘기면 그날 끝까지로 본다
 
@@ -202,8 +202,7 @@ public class GoalService {
         Course course = CourseCatalog.find(goal.getCourseCode()).orElseThrow();
 
         List<GoalResponse.ActivityResponse> activityResponses = activities.stream()
-                .map(a -> new GoalResponse.ActivityResponse(a.getNo(), a.getWeekNo(), a.getActDate().toString(),
-                        StartTimes.format(a.getStartTime()), a.getMinutes(), a.getTitle(), a.getGuide(), a.getStatus().name()))
+                .map(GoalResponse.ActivityResponse::from)
                 .toList();
 
         return new GoalResponse(goal.getNo(), course.code(), course.theme(), course.name(), course.checkpoint(),

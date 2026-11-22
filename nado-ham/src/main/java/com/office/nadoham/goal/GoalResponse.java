@@ -1,5 +1,8 @@
 package com.office.nadoham.goal;
 
+import com.office.nadoham.goal.jpa.GoalActivityEntity;
+import com.office.nadoham.planner.util.StartTimes;
+
 import java.util.List;
 
 // 내 목표 한 건과 그 활동들
@@ -25,6 +28,13 @@ public record GoalResponse(
             String title,
             String guide,
             String status) {
+
+        public static ActivityResponse from(GoalActivityEntity activity) {
+            return new ActivityResponse(activity.getNo(), activity.getWeekNo(), activity.getActDate().toString(),
+                    StartTimes.format(activity.getStartTime()), activity.getMinutes(), activity.getTitle(),
+                    activity.getGuide(), activity.getStatus().name());
+        }
+
     }
 
 }

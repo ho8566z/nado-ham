@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 // 목표에 속한 활동 한 번. 날짜·시각은 DATE/TIME 으로 저장한다(일정 PLAN 의 정수 년·월·일 한계를 물려받지 않는다).
@@ -53,6 +54,13 @@ public class GoalActivityEntity {
     @Column(name = "STATUS", nullable = false, length = 12, columnDefinition = "VARCHAR(12)")
     private ActivityStatus status;
 
+    // 처음 예정일을 놓친 날(예정일이 지난 뒤에 옮기거나 짧게 하거나 건너뛸 때 기록). 핵심 지표(놓친 뒤 7일 안 재개) 계산용
+    @Column(name = "MISSED_DATE")
+    private LocalDate missedDate;
+
+    @Column(name = "DONE_AT")
+    private LocalDateTime doneAt;
+
     @Builder
     public GoalActivityEntity(int goalNo, int weekNo, LocalDate actDate, LocalTime startTime,
                               int minutes, String title, String guide) {
@@ -64,6 +72,33 @@ public class GoalActivityEntity {
         this.title = title;
         this.guide = guide;
         this.status = ActivityStatus.PLANNED;
+    }
+
+    // 완료 기록. 짧게 하고 끝냈으면 SHORT_DONE 으로 구분해 저장한다(회고에서 축소 실행을 확인할 수 있게)
+    public void complete(boolean shortVersion, LocalDate today, LocalDateTime now) {
+        recordMiss(today);
+        this.status = shortVersion ? ActivityStatus.SHORT_DONE : ActivityStatus.DONE;
+        this.doneAt = now;
+    }
+
+    // 같은 활동의 날짜·시각만 바꾼다
+    public void reschedule(LocalDate date, LocalTime time, LocalDate today) {
+        recordMiss(today);
+        this.actDate = date;
+        this.startTime = time;
+    }
+
+    public void skip(LocalDate today) {
+        if (missedDate == null) {
+            missedDate = actDate;
+        }
+        this.status = ActivityStatus.SKIPPED;
+    }
+
+    private void recordMiss(LocalDate today) {
+        if (actDate.isBefore(today) && missedDate == null) {
+            missedDate = actDate;
+        }
     }
 
 }
