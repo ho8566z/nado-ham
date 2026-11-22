@@ -53,6 +53,18 @@ public class GoalEntity {
     @Column(name = "PREFERRED_TIME", nullable = false)
     private LocalTime preferredTime;
 
+    // 기간(1·3·6·12개월). 기존 목표(1개월 과정)는 기본값 1로 채워진다
+    @Column(name = "MONTHS", nullable = false, columnDefinition = "INT NOT NULL DEFAULT 1")
+    private int months;
+
+    // 현재 수준(BEGINNER·EXPERIENCED). 문자열로 저장한다
+    @Column(name = "PLAN_LEVEL", nullable = false, length = 12, columnDefinition = "VARCHAR(12) NOT NULL DEFAULT 'BEGINNER'")
+    private String level;
+
+    // 개인 목표 과정에서 사용자가 쓴 목표 한 문장(그 밖의 과정은 비어 있다)
+    @Column(name = "PERSONAL_GOAL", length = 100)
+    private String personalGoal;
+
     // 문자열로 저장한다(BRIEF_LOG.RESULT 와 같은 이유: Hibernate 가 MySQL ENUM 으로 만들지 않게)
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false, length = 10, columnDefinition = "VARCHAR(10)")
@@ -67,7 +79,8 @@ public class GoalEntity {
 
     @Builder
     public GoalEntity(String ownerId, String courseCode, LocalDate startDate, LocalDate endDate,
-                      int weeklyCount, int minutes, LocalTime preferredTime) {
+                      int weeklyCount, int minutes, LocalTime preferredTime,
+                      int months, String level, String personalGoal) {
         this.ownerId = ownerId;
         this.courseCode = courseCode;
         this.startDate = startDate;
@@ -75,6 +88,9 @@ public class GoalEntity {
         this.weeklyCount = weeklyCount;
         this.minutes = minutes;
         this.preferredTime = preferredTime;
+        this.months = months <= 0 ? 1 : months;
+        this.level = level == null ? "BEGINNER" : level;
+        this.personalGoal = personalGoal;
         this.status = GoalStatus.ACTIVE;
     }
 
@@ -90,6 +106,11 @@ public class GoalEntity {
         if (date.isAfter(endDate)) {
             this.endDate = date;
         }
+    }
+
+    // 종료일을 직접 바꾼다(검증은 서비스에서 한다). 전체 주 수는 그대로이고, 종료일이 다음 주 시작보다 앞이면 그 주가 마지막 주가 된다
+    public void changeEndDate(LocalDate date) {
+        this.endDate = date;
     }
 
     // 일시 중지

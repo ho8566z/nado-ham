@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.addEventListener('click', onWeekViewClick);
+    setUpWeekDrag();
 
     let saved = null;
     try {
@@ -48,6 +49,15 @@ function onWeekViewClick(event) {
         renderWeekView();
     }
 
+    let edit = target.closest('#week_view button.week_edit');
+    if (edit) {
+        toggleWeekEditor(edit.closest('li.week_goal'));
+        return;
+    }
+    if (target.closest('#week_view .week_editor')) {
+        return;
+    }
+
     let write = target.closest('#week_view a.week_write');
     if (write) {
         event.preventDefault();
@@ -60,6 +70,46 @@ function onWeekViewClick(event) {
         event.preventDefault();
         fetchGetPlan(title.dataset.no);
     }
+}
+
+// 목표 활동 칩을 다른 날 칸으로 끌어다 놓으면 그 날짜로 옮긴다(시각은 그대로). 지난 날짜 칸에는 놓을 수 없다
+function setUpWeekDrag() {
+    let grid = document.getElementById('week_grid');
+    let dragged = null;
+
+    grid.addEventListener('dragstart', event => {
+        let chip = event.target.closest && event.target.closest('li.week_goal[draggable="true"]');
+        if (!chip) {
+            return;
+        }
+        dragged = chip;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', chip.dataset.activity);
+    });
+    grid.addEventListener('dragend', () => {
+        dragged = null;
+        grid.querySelectorAll('.drop_ok').forEach(column => column.classList.remove('drop_ok'));
+    });
+    grid.addEventListener('dragover', event => {
+        let column = event.target.closest && event.target.closest('li.week_day');
+        if (dragged && column && column.dataset.date >= formatDate(startOfToday())) {
+            event.preventDefault();
+            grid.querySelectorAll('.drop_ok').forEach(item => item.classList.remove('drop_ok'));
+            column.classList.add('drop_ok');
+        }
+    });
+    grid.addEventListener('drop', event => {
+        let column = event.target.closest && event.target.closest('li.week_day');
+        if (!dragged || !column || column.dataset.date < formatDate(startOfToday())) {
+            return;
+        }
+        event.preventDefault();
+        let chip = dragged;
+        dragged = null;
+        if (column.dataset.date !== chip.dataset.date) {
+            moveGoalActivity(chip.dataset.activity, column.dataset.date, chip.dataset.time);
+        }
+    });
 }
 
 function startOfWeek(date) {
@@ -191,17 +241,32 @@ async function renderWeekView() {
         days.forEach((day, index) => {
             let list = grid.children[index].querySelector('ul.week_items');
             let entries = [];
+            let busy = [];
             results.forEach(result => {
                 if (result.year !== day.getFullYear() || result.month !== day.getMonth() + 1) {
                     return;
                 }
-                result.plans.filter(plan => plan.date === day.getDate()).forEach(plan => entries.push({time: plan.start_time || '', element: buildWeekPlan(plan)}));
-                result.goals.filter(item => item.day === day.getDate()).forEach(item => entries.push({time: item.startTime || '', element: buildWeekGoal(item)}));
+                result.plans.filter(plan => plan.date === day.getDate()).forEach(plan => {
+                    entries.push({time: plan.start_time || '', element: buildWeekPlan(plan)});
+                    if (plan.start_time) {
+                        let start = toMinutes(plan.start_time);
+                        let end = plan.end_time ? toMinutes(plan.end_time) : start + 60;
+                        busy.push([start, end < start ? 24 * 60 : end]);
+                    }
+                });
+                result.goals.filter(item => item.day === day.getDate()).forEach(item => {
+                    entries.push({time: item.startTime || '', element: buildWeekGoal(item, day)});
+                    let start = toMinutes(item.startTime);
+                    busy.push([start, start + item.minutes]);
+                });
             });
 
             // 시간이 없는 일정이 위, 나머지는 시작 시각 순
             entries.sort((a, b) => a.time.localeCompare(b.time));
             entries.forEach(entry => list.appendChild(entry.element));
+            if (day >= startOfToday()) {
+                list.appendChild(buildFreeLine(freeSlots(busy)));
+            }
             grid.children[index].classList.toggle('empty', entries.length === 0);
             total += entries.length;
         });
@@ -229,6 +294,7 @@ function buildWeekColumn(day) {
     let today = new Date();
     let column = document.createElement('li');
     column.className = 'week_day';
+    column.dataset.date = formatDate(day);
     column.classList.toggle('today', day.getFullYear() === today.getFullYear() && day.getMonth() === today.getMonth() && day.getDate() === today.getDate());
     column.classList.toggle('sun', day.getDay() === 0);
     column.classList.toggle('sat', day.getDay() === 6);
@@ -274,7 +340,8 @@ function buildWeekPlan(plan) {
 }
 
 // 목표 활동은 월간 달력과 같은 칩(과정별 색, 읽기 전용)으로 보여 주고 누르면 오늘 탭으로 간다
-function buildWeekGoal(item) {
+// 아직 하지 않은 활동은 다른 날 칸으로 끌어다 놓거나 ✎ 로 날짜·시각을 고칠 수 있다(오늘부터 목표 기간 안에서만, 서버가 다시 검사한다)
+function buildWeekGoal(item, day) {
     let li = document.createElement('li');
     li.className = 'goal_chip week_goal';
     li.dataset.course = item.courseCode;
@@ -287,6 +354,127 @@ function buildWeekGoal(item) {
     link.title = goalChipNote(item);
     link.textContent = goalChipText(item);
     li.appendChild(link);
+
+    if (item.status === 'PLANNED' && day >= startOfToday()) {
+        li.draggable = true;
+        li.dataset.activity = String(item.activityNo);
+        li.dataset.date = formatDate(day);
+        li.dataset.time = item.startTime;
+
+        let edit = document.createElement('button');
+        edit.type = 'button';
+        edit.className = 'week_edit';
+        edit.title = '날짜·시각 고치기';
+        edit.textContent = '✎';
+        li.appendChild(edit);
+    }
+
+    return li;
+}
+
+function startOfToday() {
+    let now = new Date();
+
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function formatDate(day) {
+    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+}
+
+// 활동 이동·시간 수정(오늘 탭과 같은 API). 성공하면 주간·월간 화면을 다시 불러온다
+async function moveGoalActivity(activityNo, date, time) {
+    let message = document.getElementById('week_message');
+    let response = await fetch(`/goal/activity/${activityNo}/move`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({date: date, time: time})
+    });
+    let data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        message.textContent = data.message || '활동을 옮기지 못했어요.';
+        return false;
+    }
+
+    renderWeekView();
+    if (typeof fetchGetCurrentMonthPlans === 'function') {
+        fetchGetCurrentMonthPlans();
+    }
+
+    return true;
+}
+
+// 칩 안에 날짜·시각 편집 줄을 연다(이미 열려 있으면 닫는다)
+function toggleWeekEditor(chip) {
+    let open = chip.querySelector('.week_editor');
+    if (open) {
+        open.remove();
+        return;
+    }
+
+    let editor = document.createElement('span');
+    editor.className = 'week_editor';
+
+    let date = document.createElement('input');
+    date.type = 'date';
+    date.value = chip.dataset.date;
+    date.min = formatDate(startOfToday());
+    let time = document.createElement('input');
+    time.type = 'time';
+    time.value = chip.dataset.time;
+    let save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'week_save';
+    save.textContent = '저장';
+    save.addEventListener('click', async () => {
+        save.disabled = true;
+        let ok = await moveGoalActivity(chip.dataset.activity, date.value, time.value);
+        if (!ok) {
+            save.disabled = false;
+        }
+    });
+    editor.append(date, time, save);
+    chip.appendChild(editor);
+}
+
+// 하루의 빈 시간(07:00~23:00 사이에서 30분 이상 비는 구간). 일정은 종료 시간까지, 없으면 60분, 목표 활동은 소요 시간만큼 차지한다
+const FREE_FROM = 7 * 60;
+const FREE_TO = 23 * 60;
+const FREE_MIN = 30;
+
+function toMinutes(text) {
+    let [hour, minute] = text.split(':').map(Number);
+
+    return hour * 60 + minute;
+}
+
+function freeSlots(busy) {
+    let sorted = busy.slice().sort((a, b) => a[0] - b[0]);
+    let slots = [];
+    let cursor = FREE_FROM;
+    sorted.forEach(([start, end]) => {
+        if (start - cursor >= FREE_MIN) {
+            slots.push([cursor, Math.min(start, FREE_TO)]);
+        }
+        cursor = Math.max(cursor, end);
+    });
+    if (FREE_TO - cursor >= FREE_MIN) {
+        slots.push([cursor, FREE_TO]);
+    }
+
+    return slots;
+}
+
+function minutesLabel(total) {
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function buildFreeLine(slots) {
+    let li = document.createElement('li');
+    li.className = 'week_free';
+    li.textContent = slots.length === 0
+        ? '빈 시간 없음'
+        : '빈 시간 ' + slots.slice(0, 3).map(slot => `${minutesLabel(slot[0])}~${minutesLabel(slot[1])}`).join(', ') + (slots.length > 3 ? ' …' : '');
 
     return li;
 }

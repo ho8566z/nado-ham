@@ -190,6 +190,18 @@ public class PlannerService {
 
     }
 
+    // 외부 캘린더로 내보낼 본인의 모든 일정(날짜순)
+    @Transactional(readOnly = true)
+    public List<PlannerDto> getAllPlans(String ownerId) {
+        log.info("getAllPlans()");
+
+        return plannerRepository.findByPlanOwnerId(ownerId).stream()
+                .sorted(PLAN_ORDER)
+                .map(PlannerEntity::toDto)
+                .collect(Collectors.toList());
+
+    }
+
     // 일정 소유자 확인
     public boolean isOwner(int no, String ownerId) {
         log.info("isOwner()");

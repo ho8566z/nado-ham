@@ -1,4 +1,4 @@
-// 주간 회고: 끝난 주의 결과를 보여 주고, 다음 주 횟수·시간을 조정해 계획을 만들거나(2~4주 차) 한 달 과정을 마무리한다.
+// 주간 회고: 끝난 주의 결과를 보여 주고, 다음 주 횟수·시간을 조정해 계획을 만들거나(2~4주 차) 과정을 마무리한다.
 // 서버 값은 모두 textContent 로 넣는다. showMessage·postJson·loadGoals·loadToday·formatDay 는 goal.js, goal_today.js 의 것을 함께 쓴다.
 let retro_seq = 0;          // 요청 번호(늦게 도착한 이전 응답이 새 결과를 덮어쓰지 않게 한다)
 
@@ -47,7 +47,7 @@ function buildRetroCard(retro) {
     if (retro.finalWeek) {
         let finish = document.createElement('button');
         finish.type = 'button';
-        finish.textContent = '한 달 과정 마무리';
+        finish.textContent = '과정 마무리';
         finish.addEventListener('click', function () { finishGoal(retro, card); });
         card.appendChild(finish);
         return card;
@@ -232,7 +232,7 @@ async function finishGoal(retro, card) {
         return;
     }
 
-    showMessage('한 달 과정을 마무리했어요. 수고했어요!');
+    showMessage('과정을 마무리했어요. 수고했어요!');
     await refreshAll();
 }
 

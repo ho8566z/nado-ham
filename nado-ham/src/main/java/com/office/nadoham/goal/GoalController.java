@@ -2,7 +2,9 @@ package com.office.nadoham.goal;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ public class GoalController {
     private final GoalRetroService goalRetroService;
     private final GoalLifecycleService goalLifecycleService;
     private final GoalSettingsService goalSettingsService;
+    private final CalendarExportService calendarExportService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -41,17 +45,19 @@ public class GoalController {
 
     // 선택할 수 있는 과정 목록
     @GetMapping("/courses")
-    public ResponseEntity<List<Course>> courses() {
+    public ResponseEntity<List<CourseSummary>> courses() {
         log.info("courses()");
 
-        return ResponseEntity.ok(CourseCatalog.all());
+        return ResponseEntity.ok(CourseCatalog.all().stream().map(CourseSummary::from).toList());
     }
 
     @PostMapping("/plan/preview")
     public ResponseEntity<Map<String, Object>> preview(@RequestBody GoalRequest request, Principal principal) {
         log.info("preview()");
 
-        return ResponseEntity.ok(Map.of("activities", goalService.previewFirstWeek(principal.getName(), request)));
+        return ResponseEntity.ok(Map.of(
+                "activities", goalService.previewFirstWeek(principal.getName(), request),
+                "summary", goalService.summarize(request)));
     }
 
     @PostMapping("/start")
@@ -121,6 +127,17 @@ public class GoalController {
         return ResponseEntity.ok(Map.of("items", goalCalendarService.monthItems(principal.getName(), year, month)));
     }
 
+    // 외부 캘린더(구글·애플·네이버 등)로 가져갈 수 있는 내 일정·목표 활동 파일(.ics)
+    @GetMapping("/calendar.ics")
+    public ResponseEntity<byte[]> exportCalendar(Principal principal) {
+        log.info("exportCalendar()");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/calendar;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"nado-ham.ics\"")
+                .body(calendarExportService.export(principal.getName()).getBytes(StandardCharsets.UTF_8));
+    }
+
     // 회고할 차례인 목표들(끝난 주의 실천 결과와 다음 주 제안)
     @GetMapping("/retro")
     public ResponseEntity<Map<String, Object>> retro(Principal principal) {
@@ -159,6 +176,15 @@ public class GoalController {
         log.info("settings()");
 
         return ResponseEntity.ok(goalSettingsService.update(principal.getName(), goalNo, request));
+    }
+
+    // 진행 중인 목표의 종료일 수정
+    @PutMapping("/{goalNo}/end-date")
+    public ResponseEntity<GoalResponse> endDate(
+            @PathVariable("goalNo") int goalNo, @RequestBody EndDateRequest request, Principal principal) {
+        log.info("endDate()");
+
+        return ResponseEntity.ok(goalSettingsService.changeEndDate(principal.getName(), goalNo, request));
     }
 
     // 목표 일시 중지·다시 시작

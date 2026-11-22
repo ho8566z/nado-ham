@@ -203,3 +203,45 @@ body.week_mode #section_wrap #goal_legend {
 		min-height: 0;
 	}
 }
+
+/* 목표 활동 이동·시간 수정, 빈 시간 표시 */
+#week_view li.week_goal[draggable="true"] {
+	cursor: grab;
+}
+
+#week_view li.week_day.drop_ok {
+	outline: 2px dashed var(--primary);
+}
+
+#week_view button.week_edit {
+	margin-left: 4px;
+	padding: 0 4px;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+#week_view .week_editor {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+#week_view .week_editor input {
+	max-width: 120px;
+	font-size: 12px;
+}
+
+#week_view li.week_free {
+	color: var(--muted);
+	font-size: 12px;
+}
+
+.calendar_export {
+	display: block;
+	margin: 10px auto 0;
+	text-align: center;
+	font-size: 13px;
+}
