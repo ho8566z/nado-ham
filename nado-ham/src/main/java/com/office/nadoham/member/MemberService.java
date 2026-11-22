@@ -266,7 +266,7 @@ public class MemberService {
 
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo(toMailAddr);
-        simpleMailMessage.setSubject("[나도 함] 새 비밀번호 안내입니다.");
+        simpleMailMessage.setSubject("[nado-ham] 새 비밀번호 안내입니다.");
         simpleMailMessage.setText("새 비밀번호: " + newPassword);
         simpleMailMessage.setFrom(mailFrom);
 

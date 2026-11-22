@@ -8,6 +8,7 @@ let last_search_keyword = '';   // 마지막으로 검색한 검색어(일정을
 let search_seq = 0;             // 검색 요청 번호(늦게 도착한 이전 응답이 새 결과를 덮어쓰지 않게 한다)
 
 let month_plans = [];           // 지금 보고 있는 달의 일정(서버가 준 순서). 모바일의 날짜별 목록이 쓴다
+let month_goals = [];           // 지금 보고 있는 달의 목표 활동(읽기 전용, planner_goal.js 가 채운다)
 let selected_date = null;       // 모바일에서 선택한 날짜(일). 없으면 null
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -407,6 +408,7 @@ function selectDay(date) {
 function resetDaySelection() {
     selected_date = null;
     month_plans = [];
+    month_goals = [];
     renderDayList();
 
 }
@@ -443,7 +445,8 @@ function renderDayList() {
     addButton.hidden = false;
 
     let plans = month_plans.filter(plan => plan.date === selected_date);
-    empty.textContent = plans.length === 0 ? '이 날은 일정이 없습니다.' : '';
+    let goals = month_goals.filter(item => item.day === selected_date);
+    empty.textContent = plans.length === 0 && goals.length === 0 ? '이 날은 일정이 없습니다.' : '';
 
     plans.forEach(plan => {
         let li = document.createElement('li');
@@ -455,6 +458,8 @@ function renderDayList() {
         li.appendChild(link);
         items.appendChild(li);
     });
+
+    goals.forEach(item => items.appendChild(buildGoalDayItem(item)));
 
 }
 

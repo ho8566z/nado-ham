@@ -112,6 +112,9 @@ async function fetchGetCurrentMonthPlans() {
         // 모바일에서 선택해 둔 날짜의 일정 목록을 새 데이터로 다시 그린다
         renderDayList();
 
+        // 목표 활동을 일정 칩 뒤에 겹쳐 보여 준다(읽기 전용)
+        fetchGetCurrentMonthGoals(requestedYear, requestedMonth);
+
     } catch (error) {
         console.log('fetchGetCurrentMonthPlans() COMMUNICATION ERROR!! ', error);
 

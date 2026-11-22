@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
 import java.util.List;
@@ -25,6 +26,7 @@ public class GoalController {
 
     private final GoalService goalService;
     private final GoalTodayService goalTodayService;
+    private final GoalCalendarService goalCalendarService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -104,6 +106,15 @@ public class GoalController {
         log.info("skip()");
 
         return ResponseEntity.ok(goalTodayService.skip(principal.getName(), no));
+    }
+
+    // 일정 달력에 겹쳐 보여 줄 그 달의 목표 활동(읽기 전용)
+    @GetMapping("/calendar")
+    public ResponseEntity<Map<String, Object>> calendar(
+            @RequestParam("year") int year, @RequestParam("month") int month, Principal principal) {
+        log.info("calendar()");
+
+        return ResponseEntity.ok(Map.of("items", goalCalendarService.monthItems(principal.getName(), year, month)));
     }
 
     @ExceptionHandler(GoalException.class)

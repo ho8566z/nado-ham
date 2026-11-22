@@ -296,6 +296,72 @@ section {
 #table_calender tr td ul.plan li a {
 	color: #3730a3;
 }
+/* 목표 활동 칩: 일정 칩과 구분되게 왼쪽 띠와 목표별 색을 쓴다(과정 코드로 색을 정한다) */
+#table_calender tr td ul.plan li.goal_chip {
+	border-left: 3px solid var(--goal-color, #6b7280);
+	background-color: var(--goal-soft, #f3f4f6);
+}
+
+#table_calender tr td ul.plan li.goal_chip a {
+	color: #1f2937;
+}
+
+#table_calender tr td ul.plan li.goal_chip.finished {
+	opacity: 0.6;
+}
+
+#table_calender tr td ul.plan li.goal_chip.conflict {
+	outline: 1px solid #e67e22;
+}
+
+.goal_chip[data-course="EXERCISE_HABIT"],
+.goal_tag[data-course="EXERCISE_HABIT"] {
+	--goal-color: #16a34a;
+	--goal-soft: #dcfce7;
+}
+
+.goal_chip[data-course="TRAVEL_ENGLISH"],
+.goal_tag[data-course="TRAVEL_ENGLISH"] {
+	--goal-color: #d97706;
+	--goal-soft: #fef3c7;
+}
+
+.goal_chip[data-course="GUITAR_SONG"],
+.goal_tag[data-course="GUITAR_SONG"] {
+	--goal-color: #e11d48;
+	--goal-soft: #ffe4e6;
+}
+
+.goal_legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0 0 8px;
+}
+
+.goal_legend[hidden] {
+	display: none;
+}
+
+.goal_tag {
+	padding: 2px 8px;
+	border-left: 3px solid var(--goal-color, #6b7280);
+	border-radius: 6px;
+	background-color: var(--goal-soft, #f3f4f6);
+	font-size: 12px;
+}
+
+#day_list_items li.goal_chip {
+	padding: 4px 8px;
+	border-left: 3px solid var(--goal-color, #6b7280);
+	background-color: var(--goal-soft, #f3f4f6);
+	border-radius: 6px;
+}
+
+#day_list_items li.goal_chip.finished {
+	opacity: 0.6;
+}
+
 /* CALENDER END */
 
 /* 일정 등록·상세 모달 공통: 어두운 배경 위에 둥근 카드 */

@@ -217,13 +217,14 @@ class ThymeleafRenderingTest {
     }
 
     @Test
-    @DisplayName("달력 화면: 검색창, 시간 입력칸 2곳, 통계 링크, 날짜별 목록 패널이 렌더링된다")
+    @DisplayName("달력 화면: 검색창, 시간 입력칸 2곳, 통계 링크, 날짜별 목록 패널, 목표 활동 겹쳐 보기 스크립트가 렌더링된다")
     void plannerPage() throws Exception {
         String body = withoutComments(render("/planner", asUser()));
 
         assertThat(body).contains("name=\"s_keyword\"").contains("id=\"day_list\"").contains("class=\"btn_stats\" href=\"/planner/stats\"");
         assertThat(body.split("name=\"p_time\"", -1).length - 1).isEqualTo(2);
         assertThat(body).contains("src=\"/js/planner.js\"").contains("src=\"/js/planner_fetch.js\"").contains("href=\"/css/planner.css\"");
+        assertThat(body).as("목표 활동 겹쳐 보기").contains("src=\"/js/planner_goal.js\"").contains("id=\"goal_legend\"");
     }
 
     @Test
