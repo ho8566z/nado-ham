@@ -47,8 +47,14 @@ class GoalTodayControllerTest {
         }
 
         @Bean
-        GoalController goalController(GoalService goalService, GoalTodayService goalTodayService) {
-            return new GoalController(goalService, goalTodayService);
+        GoalCalendarService goalCalendarService() {
+            return Mockito.mock(GoalCalendarService.class);
+        }
+
+        @Bean
+        GoalController goalController(GoalService goalService, GoalTodayService goalTodayService,
+                                      GoalCalendarService goalCalendarService) {
+            return new GoalController(goalService, goalTodayService, goalCalendarService);
         }
 
     }
@@ -57,12 +63,14 @@ class GoalTodayControllerTest {
     private WebApplicationContext context;
     @Autowired
     private GoalTodayService goalTodayService;
+    @Autowired
+    private GoalCalendarService goalCalendarService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        Mockito.reset(goalTodayService);
+        Mockito.reset(goalTodayService, goalCalendarService);
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
@@ -138,6 +146,24 @@ class GoalTodayControllerTest {
                 .andExpect(status().is3xxRedirection());
 
         verify(goalTodayService, never()).complete(any(), Mockito.anyInt(), Mockito.anyBoolean());
+    }
+
+    @Test
+    @DisplayName("달력용 목표 활동은 본인 아이디로 조회해 items 로 돌려주고, 범위 밖 기간은 400 INVALID_PERIOD")
+    void calendar() throws Exception {
+        when(goalCalendarService.monthItems("alice", 2026, 11)).thenReturn(List.of(
+                new CalendarItem(7, 1, "EXERCISE_HABIT", "운동", 23, "19:30", 20, "걷기 20분", "PLANNED", false, null)));
+        when(goalCalendarService.monthItems("alice", 2031, 1)).thenThrow(new GoalException("INVALID_PERIOD", "범위 밖입니다."));
+
+        mockMvc.perform(get("/goal/calendar?year=2026&month=11").with(user("alice").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].day").value(23))
+                .andExpect(jsonPath("$.items[0].courseCode").value("EXERCISE_HABIT"));
+        mockMvc.perform(get("/goal/calendar?year=2031&month=1").with(user("alice").roles("USER")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PERIOD"));
+        mockMvc.perform(get("/goal/calendar?year=2026&month=11").with(user("boss").roles("ADMIN")))
+                .andExpect(status().is3xxRedirection());
     }
 
 }
