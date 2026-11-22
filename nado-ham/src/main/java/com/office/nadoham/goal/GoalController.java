@@ -27,6 +27,7 @@ public class GoalController {
     private final GoalService goalService;
     private final GoalTodayService goalTodayService;
     private final GoalCalendarService goalCalendarService;
+    private final GoalRetroService goalRetroService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -117,16 +118,47 @@ public class GoalController {
         return ResponseEntity.ok(Map.of("items", goalCalendarService.monthItems(principal.getName(), year, month)));
     }
 
+    // 회고할 차례인 목표들(끝난 주의 실천 결과와 다음 주 제안)
+    @GetMapping("/retro")
+    public ResponseEntity<Map<String, Object>> retro(Principal principal) {
+        log.info("retro()");
+
+        return ResponseEntity.ok(Map.of("retros", goalRetroService.pending(principal.getName())));
+    }
+
+    @PostMapping("/{goalNo}/next/preview")
+    public ResponseEntity<Map<String, Object>> previewNext(
+            @PathVariable("goalNo") int goalNo, @RequestBody NextWeekRequest request, Principal principal) {
+        log.info("previewNext()");
+
+        return ResponseEntity.ok(Map.of("activities", goalRetroService.previewNext(principal.getName(), goalNo, request)));
+    }
+
+    @PostMapping("/{goalNo}/next/start")
+    public ResponseEntity<GoalResponse> startNext(
+            @PathVariable("goalNo") int goalNo, @RequestBody NextWeekRequest request, Principal principal) {
+        log.info("startNext()");
+
+        return ResponseEntity.ok(goalRetroService.startNext(principal.getName(), goalNo, request));
+    }
+
+    @PostMapping("/{goalNo}/finish")
+    public ResponseEntity<GoalResponse> finish(@PathVariable("goalNo") int goalNo, Principal principal) {
+        log.info("finish()");
+
+        return ResponseEntity.ok(goalRetroService.finish(principal.getName(), goalNo));
+    }
+
     @ExceptionHandler(GoalException.class)
     public ResponseEntity<Map<String, Object>> handleGoalException(GoalException e) {
         return ResponseEntity.status(statusOf(e)).body(Map.of("code", e.getCode(), "message", e.getMessage()));
     }
 
-    // 남의 활동·없는 활동은 404, 이미 처리했거나 아직 못 하는 상태는 409, 나머지 입력 오류는 400
+    // 남의 활동·목표와 없는 것은 404, 이미 처리했거나 아직 못 하는 상태(회고 전·이미 계획함)는 409, 나머지 입력 오류는 400
     private HttpStatus statusOf(GoalException e) {
         return switch (e.getCode()) {
-            case "ACTIVITY_NOT_FOUND" -> HttpStatus.NOT_FOUND;
-            case "INVALID_STATE" -> HttpStatus.CONFLICT;
+            case "ACTIVITY_NOT_FOUND", "GOAL_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "INVALID_STATE", "RETRO_NOT_READY", "ALREADY_PLANNED", "NO_NEXT_WEEK" -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };
     }

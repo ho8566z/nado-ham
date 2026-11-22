@@ -209,7 +209,7 @@ class ThymeleafRenderingTest {
     @DisplayName("내 정보 화면: 텔레그램 영역은 USER 에게만 렌더링된다")
     void telegramSectionOnlyForUser() throws Exception {
         String user = withoutComments(render("/member/modify", asUser()));
-        assertThat(user).contains("id=\"telegram\"").contains("id=\"tg_link_btn\"").contains("src=\"/js/member_telegram.js\"")
+        assertThat(user).contains("id=\"telegram\"").contains("id=\"tg_link_btn\"").contains("id=\"tg_goal_toggle\"").contains("src=\"/js/member_telegram.js\"")
                 .contains("href=\"/css/member_telegram.css\"").contains("value=\"alice\"");
 
         String admin = withoutComments(render("/member/modify", asAdmin()));
@@ -241,8 +241,8 @@ class ThymeleafRenderingTest {
         String body = withoutComments(render("/goal", asUser()));
 
         assertThat(body).contains("id=\"tab_btn_today\"").contains("id=\"tab_btn_goals\"");
-        assertThat(body).contains("id=\"tab_today\"").contains("id=\"missed_list\"").contains("id=\"today_list\"").contains("id=\"next_info\"");
-        assertThat(body).contains("src=\"/js/goal.js\"").contains("src=\"/js/goal_today.js\"");
+        assertThat(body).contains("id=\"tab_today\"").contains("id=\"retro_list\"").contains("id=\"missed_list\"").contains("id=\"today_list\"").contains("id=\"next_info\"");
+        assertThat(body).contains("src=\"/js/goal.js\"").contains("src=\"/js/goal_today.js\"").contains("src=\"/js/goal_retro.js\"");
     }
 
 }

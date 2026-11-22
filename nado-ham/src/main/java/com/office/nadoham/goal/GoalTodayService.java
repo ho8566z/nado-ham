@@ -45,7 +45,7 @@ public class GoalTodayService {
         LocalDate today = LocalDate.now(clock);
         List<GoalEntity> goals = goalRepository.findByOwnerIdAndStatusOrderByNoAsc(ownerId, GoalStatus.ACTIVE);
         if (goals.isEmpty()) {
-            return new TodayResponse(today.toString(), List.of(), List.of(), null);
+            return new TodayResponse(today.toString(), List.of(), List.of(), null, 0);
         }
 
         Map<Integer, GoalEntity> goalByNo = goals.stream().collect(Collectors.toMap(GoalEntity::getNo, Function.identity()));
@@ -71,7 +71,7 @@ public class GoalTodayService {
             }
         }
 
-        return new TodayResponse(today.toString(), cards, missed, next);
+        return new TodayResponse(today.toString(), cards, missed, next, goals.size());
     }
 
     // 옮기기 후보: 오늘부터 7일 안에서 같은 목표의 다른 활동이 없는 날을 원래 시각으로 제시한다(겹치는 일정은 표시만 한다)
@@ -196,10 +196,15 @@ public class GoalTodayService {
                 .filter(other -> other.getStatus() == ActivityStatus.DONE || other.getStatus() == ActivityStatus.SHORT_DONE)
                 .count();
 
+        // 분모는 그 주에 계획한 활동 수다(주마다 횟수를 조정할 수 있어 목표의 현재 횟수와 다를 수 있다)
+        int weeklyCount = (int) all.stream()
+                .filter(other -> other.getGoalNo() == goal.getNo() && other.getWeekNo() == activity.getWeekNo())
+                .count();
+
         return new TodayResponse.Card(activity.getNo(), goal.getNo(), course.theme(), course.name(),
                 activity.getActDate().toString(), StartTimes.format(activity.getStartTime()), activity.getMinutes(),
                 activity.getTitle(), activity.getGuide(), course.shortGuide(), activity.getStatus().name(),
-                goal.getWeeklyCount(), weeklyDone);
+                weeklyCount, weeklyDone);
     }
 
     private LocalDate parseDate(String raw) {

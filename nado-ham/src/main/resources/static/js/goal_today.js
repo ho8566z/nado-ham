@@ -67,7 +67,7 @@ function renderNextInfo(data) {
     info.replaceChildren();
 
     let hasPlanned = data.cards.some(function (card) { return card.status === 'PLANNED'; });
-    let hasGoalActivity = data.cards.length > 0 || data.missed.length > 0 || data.next !== null;
+    let hasGoal = data.activeGoals > 0;
     if (hasPlanned) {
         info.hidden = true;
         return;
@@ -78,7 +78,7 @@ function renderNextInfo(data) {
         let prefix = data.cards.length > 0 ? '오늘 할 일을 모두 마쳤어요. ' : '오늘은 예정된 활동이 없어요. ';
         text.textContent = prefix + '다음 활동: ' + formatDay(data.next.date) + ' ' + data.next.startTime
             + ' [' + data.next.theme + '] ' + data.next.title;
-    } else if (hasGoalActivity) {
+    } else if (hasGoal) {
         text.textContent = data.cards.length > 0 ? '오늘 할 일을 모두 마쳤어요.' : '오늘은 예정된 활동이 없어요.';
     } else {
         text.textContent = '진행 중인 목표가 없어요. ';

@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.getElementById('tg_link_btn').addEventListener('click', onTelegramLink);
     document.getElementById('tg_brief_toggle').addEventListener('change', onBriefToggle);
+    document.getElementById('tg_goal_toggle').addEventListener('change', onGoalNotifyToggle);
     document.getElementById('tg_send_btn').addEventListener('click', onSendNow);
     document.getElementById('tg_unlink_btn').addEventListener('click', onUnlink);
 
@@ -84,6 +85,7 @@ function renderTelegram(status) {
     document.getElementById('tg_unlinked').hidden = linked;
     document.getElementById('tg_linked').hidden = !linked;
     document.getElementById('tg_brief_toggle').checked = linked && !!status.brief_enabled;
+    document.getElementById('tg_goal_toggle').checked = linked && !!status.goal_notify_enabled;
 
     if (linked) {
         stopTgPolling();
@@ -162,6 +164,30 @@ async function onBriefToggle() {
 
     if (r.ok) {
         setTgMessage(desired ? '주간 브리핑을 켰습니다.' : '주간 브리핑을 껐습니다.', 'ok');
+        return;
+    }
+
+    toggle.checked = !desired;      // 저장되지 않았으니 원래 상태로 되돌린다
+    if (r.data && r.data.code === 'TELEGRAM_NOT_LINKED') {
+        setTgMessage('텔레그램을 먼저 연동해 주세요.', 'error');
+        loadTelegramStatus();
+    } else {
+        setTgMessage('설정을 저장하지 못했습니다.', 'error');
+    }
+
+}
+
+// 목표 알림 켜기/끄기
+async function onGoalNotifyToggle() {
+    let toggle = document.getElementById('tg_goal_toggle');
+    let desired = toggle.checked;
+
+    setTgBusy(['tg_goal_toggle'], true);
+    let r = await tgApi('PUT', '/member/goal-notify', {enabled: desired});
+    setTgBusy(['tg_goal_toggle'], false);
+
+    if (r.ok) {
+        setTgMessage(desired ? '목표 알림을 켰습니다.' : '목표 알림을 껐습니다.', 'ok');
         return;
     }
 

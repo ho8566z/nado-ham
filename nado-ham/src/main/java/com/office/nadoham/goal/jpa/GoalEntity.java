@@ -73,6 +73,25 @@ public class GoalEntity {
         this.status = GoalStatus.ACTIVE;
     }
 
+    // 다음 주 계획을 확정할 때 그 주의 횟수·시간·시각을 목표에 반영한다(화면의 '주 n회' 표시와 다음 제안의 기준)
+    public void adjustPlan(int weeklyCount, int minutes, LocalTime preferredTime) {
+        this.weeklyCount = weeklyCount;
+        this.minutes = minutes;
+        this.preferredTime = preferredTime;
+    }
+
+    // 늦게 시작한 주가 원래 종료일을 넘으면 종료일을 늘린다(줄이지는 않는다)
+    public void extendEndDate(LocalDate date) {
+        if (date.isAfter(endDate)) {
+            this.endDate = date;
+        }
+    }
+
+    // 한 달 과정을 마친 목표
+    public void complete() {
+        this.status = GoalStatus.DONE;
+    }
+
     @PrePersist
     private void prePersist() {
         regDate = LocalDateTime.now();

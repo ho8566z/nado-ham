@@ -34,7 +34,7 @@ public class TelegramLinkService {
     }
 
     // 연동 상태
-    public record Status(boolean linked, boolean briefEnabled) {
+    public record Status(boolean linked, boolean briefEnabled, boolean goalNotifyEnabled) {
     }
 
     final private MemberRepository memberRepository;
@@ -76,7 +76,7 @@ public class TelegramLinkService {
         log.info("getStatus()");
 
         MemberEntity member = findMember(memberId);
-        return new Status(member.getTelegramChatId() != null, member.isBriefYn());
+        return new Status(member.getTelegramChatId() != null, member.isBriefYn(), member.isGoalNotifyYn());
 
     }
 
@@ -88,10 +88,11 @@ public class TelegramLinkService {
         MemberEntity member = findMember(memberId);
         member.setTelegramChatId(null);
         member.setBriefYn(false);
+        member.setGoalNotifyYn(false);
         memberRepository.save(member);
         telegramLinkRepository.deleteByMemberNo(member.getMemNo());
 
-        return new Status(false, false);
+        return new Status(false, false, false);
 
     }
 
@@ -106,6 +107,23 @@ public class TelegramLinkService {
         }
 
         member.setBriefYn(enabled);
+        memberRepository.save(member);
+
+        return BriefOutcome.CHANGED;
+
+    }
+
+    // 목표 활동 알림 켜기/끄기: 텔레그램이 연동된 회원만 켤 수 있다(끄기는 언제나 가능)
+    @Transactional
+    public BriefOutcome setGoalNotifyEnabled(String memberId, boolean enabled) {
+        log.info("setGoalNotifyEnabled()");
+
+        MemberEntity member = findMember(memberId);
+        if (enabled && member.getTelegramChatId() == null) {
+            return BriefOutcome.NOT_LINKED;
+        }
+
+        member.setGoalNotifyYn(enabled);
         memberRepository.save(member);
 
         return BriefOutcome.CHANGED;

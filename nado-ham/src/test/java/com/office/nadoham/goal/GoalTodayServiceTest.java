@@ -109,6 +109,7 @@ class GoalTodayServiceTest {
         assertThat(response.cards()).isEmpty();
         assertThat(response.missed()).isEmpty();
         assertThat(response.next()).isNull();
+        assertThat(response.activeGoals()).isZero();
     }
 
     @Test
@@ -128,6 +129,7 @@ class GoalTodayServiceTest {
         assertThat(response.cards()).extracting(TodayResponse.Card::status).containsExactly("DONE", "PLANNED");
         assertThat(response.missed()).extracting(TodayResponse.Card::date).containsExactly("2026-11-22");
         assertThat(response.next().date()).isEqualTo("2026-11-25");
+        assertThat(response.activeGoals()).isEqualTo(1);
     }
 
     @Test
@@ -140,7 +142,7 @@ class GoalTodayServiceTest {
 
         TodayResponse.Card card = service.today(OWNER).cards().get(0);
 
-        assertThat(card.weeklyCount()).isEqualTo(3);
+        assertThat(card.weeklyCount()).isEqualTo(4);        // 분모는 그 주에 계획한 활동 수(건너뛴 것 포함)
         assertThat(card.weeklyDone()).isEqualTo(2);
         assertThat(card.shortGuide()).isEqualTo(CourseCatalog.find("EXERCISE_HABIT").orElseThrow().shortGuide());
     }

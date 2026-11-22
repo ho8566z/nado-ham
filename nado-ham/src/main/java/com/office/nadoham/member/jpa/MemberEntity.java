@@ -65,6 +65,10 @@ public class MemberEntity {
     @Column(name = "BRIEF_YN", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
     private boolean briefYn;
 
+    // 목표 활동 알림(활동 시각 알림·주말 회고) 수신 여부. 기본 끔이며 텔레그램이 연동된 회원만 켤 수 있다(서비스 규칙).
+    @Column(name = "GOAL_NOTIFY_YN", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
+    private boolean goalNotifyYn;
+
     @Column(name = "REG_DATE", updatable = false)
     private LocalDateTime memRegDate;
 

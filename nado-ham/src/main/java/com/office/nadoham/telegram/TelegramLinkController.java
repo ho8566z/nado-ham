@@ -30,6 +30,10 @@ public class TelegramLinkController {
     public record BriefRequest(Boolean enabled) {
     }
 
+    // PUT /member/goal-notify 요청 본문
+    public record GoalNotifyRequest(Boolean enabled) {
+    }
+
     final private TelegramLinkService telegramLinkService;
 
     // 연동 코드 발급
@@ -92,10 +96,31 @@ public class TelegramLinkController {
 
     }
 
+    // 목표 활동 알림 켜기/끄기
+    @PutMapping("/goal-notify")
+    public ResponseEntity<Map<String, Object>> setGoalNotify(@RequestBody(required = false) GoalNotifyRequest request, Principal principal) {
+        log.info("setGoalNotify()");
+
+        if (request == null || request.enabled() == null) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_ENABLED", "enabled는 true 또는 false여야 합니다.");
+        }
+
+        TelegramLinkService.BriefOutcome outcome = telegramLinkService.setGoalNotifyEnabled(principal.getName(), request.enabled());
+        if (outcome == TelegramLinkService.BriefOutcome.NOT_LINKED) {
+            return error(HttpStatus.CONFLICT, "TELEGRAM_NOT_LINKED", "텔레그램을 먼저 연동해야 알림을 켤 수 있습니다.");
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("enabled", request.enabled());
+        return ResponseEntity.ok(body);
+
+    }
+
     private Map<String, Object> statusBody(TelegramLinkService.Status status) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("linked", status.linked());
         body.put("brief_enabled", status.briefEnabled());
+        body.put("goal_notify_enabled", status.goalNotifyEnabled());
         return body;
 
     }
