@@ -104,8 +104,8 @@ class TelegramLinkControllerTest {
     @Test
     @DisplayName("상태·해제: 로그인한 본인 기준이고 응답은 linked, brief_enabled")
     void statusAndUnlink() throws Exception {
-        when(service.getStatus("alice")).thenReturn(new TelegramLinkService.Status(true, true));
-        when(service.unlink("alice")).thenReturn(new TelegramLinkService.Status(false, false));
+        when(service.getStatus("alice")).thenReturn(new TelegramLinkService.Status(true, true, false));
+        when(service.unlink("alice")).thenReturn(new TelegramLinkService.Status(false, false, false));
 
         mockMvc.perform(get("/member/telegram").param("member_id", "bob").with(user("alice").roles("USER")))
                 .andExpect(status().isOk())
@@ -154,6 +154,27 @@ class TelegramLinkControllerTest {
                 .andExpect(status().is4xxClientError());
 
         verify(service, never()).setBriefEnabled(anyString(), anyBoolean());
+    }
+
+    @Test
+    @DisplayName("목표 알림 설정: enabled를 받아 저장하고, 연동하지 않았으면 409, 본문이 잘못되면 400이고 저장하지 않는다")
+    void goalNotify() throws Exception {
+        when(service.setGoalNotifyEnabled("alice", true)).thenReturn(TelegramLinkService.BriefOutcome.CHANGED);
+        when(service.setGoalNotifyEnabled("bob", true)).thenReturn(TelegramLinkService.BriefOutcome.NOT_LINKED);
+
+        mockMvc.perform(put("/member/goal-notify").contentType(MediaType.APPLICATION_JSON).content("{\"enabled\": true}")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(true));
+        mockMvc.perform(put("/member/goal-notify").contentType(MediaType.APPLICATION_JSON).content("{\"enabled\": true}")
+                        .with(user("bob").roles("USER")))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("TELEGRAM_NOT_LINKED"));
+        for (String body : new String[]{"{}", "{\"enabled\": null}", "not json"}) {
+            mockMvc.perform(put("/member/goal-notify").contentType(MediaType.APPLICATION_JSON).content(body)
+                            .with(user("alice").roles("USER")))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(service, never()).setGoalNotifyEnabled(Mockito.eq("carol"), anyBoolean());
     }
 
     @Test

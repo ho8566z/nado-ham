@@ -209,7 +209,7 @@ class ThymeleafRenderingTest {
     @DisplayName("내 정보 화면: 텔레그램 영역은 USER 에게만 렌더링된다")
     void telegramSectionOnlyForUser() throws Exception {
         String user = withoutComments(render("/member/modify", asUser()));
-        assertThat(user).contains("id=\"telegram\"").contains("id=\"tg_link_btn\"").contains("src=\"/js/member_telegram.js\"")
+        assertThat(user).contains("id=\"telegram\"").contains("id=\"tg_link_btn\"").contains("id=\"tg_goal_toggle\"").contains("src=\"/js/member_telegram.js\"")
                 .contains("href=\"/css/member_telegram.css\"").contains("value=\"alice\"");
 
         String admin = withoutComments(render("/member/modify", asAdmin()));

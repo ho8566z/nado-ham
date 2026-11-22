@@ -235,7 +235,7 @@ class TelegramLinkServiceTest {
 
         TelegramLinkService.Status status = service.unlink("alice");
 
-        assertThat(status).isEqualTo(new TelegramLinkService.Status(false, false));
+        assertThat(status).isEqualTo(new TelegramLinkService.Status(false, false, false));
         assertThat(alice.getTelegramChatId()).isNull();
         assertThat(alice.isBriefYn()).isFalse();
         verify(memberRepository).save(alice);
@@ -245,7 +245,7 @@ class TelegramLinkServiceTest {
     @Test
     @DisplayName("해제: 연동하지 않은 회원이 호출해도 오류 없이 같은 결과")
     void unlink_whenNotLinked() {
-        assertThat(service.unlink("alice")).isEqualTo(new TelegramLinkService.Status(false, false));
+        assertThat(service.unlink("alice")).isEqualTo(new TelegramLinkService.Status(false, false, false));
     }
 
     @Test
@@ -279,13 +279,28 @@ class TelegramLinkServiceTest {
     }
 
     @Test
+    @DisplayName("목표 알림 켜기: 연동하지 않았으면 NOT_LINKED, 연동했으면 켜지고, 끄기는 언제나 가능하며 연동 해제하면 꺼진다")
+    void goalNotify() {
+        assertThat(service.setGoalNotifyEnabled("alice", true)).isEqualTo(TelegramLinkService.BriefOutcome.NOT_LINKED);
+        assertThat(alice.isGoalNotifyYn()).isFalse();
+
+        alice.setTelegramChatId(555L);
+        assertThat(service.setGoalNotifyEnabled("alice", true)).isEqualTo(TelegramLinkService.BriefOutcome.CHANGED);
+        assertThat(alice.isGoalNotifyYn()).isTrue();
+        assertThat(service.getStatus("alice")).isEqualTo(new TelegramLinkService.Status(true, false, true));
+
+        assertThat(service.unlink("alice")).isEqualTo(new TelegramLinkService.Status(false, false, false));
+        assertThat(alice.isGoalNotifyYn()).isFalse();
+    }
+
+    @Test
     @DisplayName("상태: 연동 여부와 수신 여부를 돌려준다")
     void status() {
-        assertThat(service.getStatus("alice")).isEqualTo(new TelegramLinkService.Status(false, false));
+        assertThat(service.getStatus("alice")).isEqualTo(new TelegramLinkService.Status(false, false, false));
 
         alice.setTelegramChatId(555L);
         alice.setBriefYn(true);
-        assertThat(service.getStatus("alice")).isEqualTo(new TelegramLinkService.Status(true, true));
+        assertThat(service.getStatus("alice")).isEqualTo(new TelegramLinkService.Status(true, true, false));
     }
 
     @Test
