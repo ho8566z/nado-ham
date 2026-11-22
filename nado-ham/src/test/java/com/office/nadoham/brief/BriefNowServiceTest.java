@@ -75,7 +75,7 @@ class BriefNowServiceTest {
 
         alice = MemberEntity.builder().memNo(1).memId("alice").telegramChatId(111L).build();
         when(memberRepository.findByMemId("alice")).thenReturn(Optional.of(alice));
-        when(briefMapper.selectPlans("alice", 20261109, 20261115)).thenReturn(List.of(new BriefPlanRow(2026, 11, 10, "회의", "14:00")));
+        when(briefMapper.selectPlans("alice", 20261109, 20261115)).thenReturn(List.of(new BriefPlanRow(2026, 11, 10, "회의", "14:00", null)));
     }
 
     @Test

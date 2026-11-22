@@ -40,7 +40,7 @@ public class GoalService {
     public static final int WEEK_DAYS = 7;
     public static final int FIRST_WEEK = 1;
 
-    // 일정(PLAN)에는 종료 시간이 없어 시작 시간 기준 이 길이만큼 차지하는 것으로 보고 겹침을 판단한다
+    // 일정(PLAN)에 종료 시간이 없으면 시작 시간 기준 이 길이만큼 차지하는 것으로 보고 겹침을 판단한다
     public static final int ASSUMED_PLAN_MINUTES = 60;
 
     private final GoalRepository goalRepository;
@@ -204,7 +204,10 @@ public class GoalService {
                 continue;
             }
             LocalTime planStart = LocalTime.parse(plan.getStart_time());
-            LocalTime planEnd = planStart.plusMinutes(ASSUMED_PLAN_MINUTES);
+            // 종료 시간이 있으면 그 시간까지, 없으면 시작 후 ASSUMED_PLAN_MINUTES 동안 차지하는 것으로 본다
+            LocalTime planEnd = plan.getEnd_time() != null
+                    ? LocalTime.parse(plan.getEnd_time())
+                    : planStart.plusMinutes(ASSUMED_PLAN_MINUTES);
             boolean planWraps = planEnd.isBefore(planStart);
 
             boolean startsBeforeActivityEnds = wraps || planStart.isBefore(end);

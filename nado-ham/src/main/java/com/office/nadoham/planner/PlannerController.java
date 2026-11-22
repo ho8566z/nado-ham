@@ -62,6 +62,14 @@ public class PlannerController {
             return invalidStartTime();
         }
 
+        // 종료 시간은 선택이다. 값이 있으면 시작 시간이 있어야 하고 시작보다 뒤여야 한다
+        String endTime;
+        try {
+            endTime = StartTimes.normalizeEnd(form.getEnd_time(), startTime);
+        } catch (IllegalArgumentException e) {
+            return invalidEndTime(e.getMessage());
+        }
+
         PlannerDto plannerDto = PlannerDto.builder()
                 .owner_id(signInedMemberID)
                 .year(form.getYear())
@@ -70,6 +78,7 @@ public class PlannerController {
                 .title(form.getTitle())
                 .body(form.getBody())
                 .start_time(startTime)
+                .end_time(endTime)
                 .build();
 
         // 이미지는 선택이다. 파일을 골랐을 때만 저장하고, 안 골랐거나 빈 파일이면 이미지 없이 등록한다.
@@ -104,6 +113,15 @@ public class PlannerController {
         Map<String, Object> errorMap = new HashMap<>();
         errorMap.put("code", "INVALID_START_TIME");
         errorMap.put("message", "시작 시간은 HH:mm 형식이어야 합니다.");
+        return ResponseEntity.badRequest().body(errorMap);
+
+    }
+
+    // 종료 시간 오류 응답(400): 형식이 틀렸거나, 시작 시간이 없거나, 시작보다 앞서거나 같음
+    private ResponseEntity<Map<String, Object>> invalidEndTime(String message) {
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("code", "INVALID_END_TIME");
+        errorMap.put("message", message);
         return ResponseEntity.badRequest().body(errorMap);
 
     }
@@ -230,6 +248,13 @@ public class PlannerController {
             return invalidStartTime();
         }
 
+        String endTime;
+        try {
+            endTime = StartTimes.normalizeEnd(form.getEnd_time(), startTime);
+        } catch (IllegalArgumentException e) {
+            return invalidEndTime(e.getMessage());
+        }
+
         PlannerDto plannerDto = PlannerDto.builder()
                 .no(no)
                 .year(form.getYear())
@@ -238,6 +263,7 @@ public class PlannerController {
                 .title(form.getTitle())
                 .body(form.getBody())
                 .start_time(startTime)
+                .end_time(endTime)
                 .build();
 
         if (hasFile(file)) {

@@ -437,4 +437,72 @@ class PlannerControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    @DisplayName("등록: 시작·종료 시간을 보내면 둘 다 저장하고, 종료 시간을 비우면 종료 시간 없음")
+    void write_withEndTime() throws Exception {
+        when(plannerService.writePlan(any())).thenReturn(Map.of("result", 1));
+
+        mockMvc.perform(multipart("/planner/plan")
+                        .param("year", "2026").param("month", "11").param("date", "8")
+                        .param("title", "t").param("body", "b").param("start_time", "09:00").param("end_time", "10:30")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/planner/plan")
+                        .param("year", "2026").param("month", "11").param("date", "8")
+                        .param("title", "t").param("body", "b").param("start_time", "09:00").param("end_time", "")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<PlannerDto> captor = ArgumentCaptor.forClass(PlannerDto.class);
+        verify(plannerService, org.mockito.Mockito.times(2)).writePlan(captor.capture());
+        assertThat(captor.getAllValues().get(0).getEnd_time()).isEqualTo("10:30");
+        assertThat(captor.getAllValues().get(1).getEnd_time()).isNull();
+    }
+
+    @Test
+    @DisplayName("등록: 종료 시간이 시작보다 앞서거나 같거나, 시작 시간이 없거나, 형식이 틀리면 400 INVALID_END_TIME 이고 저장하지 않는다")
+    void write_invalidEndTime() throws Exception {
+        String[][] cases = {{"10:00", "09:00"}, {"09:00", "09:00"}, {"", "10:00"}, {"09:00", "25:00"}};
+        for (String[] c : cases) {
+            mockMvc.perform(multipart("/planner/plan").file(image)
+                            .param("year", "2026").param("month", "11").param("date", "8")
+                            .param("title", "t").param("body", "b").param("start_time", c[0]).param("end_time", c[1])
+                            .with(user("alice").roles("USER")))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_END_TIME"));
+        }
+
+        verify(uploadFileService, never()).upload(anyString(), any());
+        verify(plannerService, never()).writePlan(any());
+    }
+
+    @Test
+    @DisplayName("수정: 종료 시간을 전달하고, 규칙에 맞지 않으면 400 INVALID_END_TIME, 남의 일정이면 종료 시간 오류보다 404 가 먼저")
+    void modify_endTime() throws Exception {
+        when(plannerService.isOwner(5, "alice")).thenReturn(true);
+        when(plannerService.isOwner(5, "mallory")).thenReturn(false);
+        when(plannerService.modifyPlan(any(), anyString())).thenReturn(Map.of("result", 1));
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/planner/plan/5")
+                        .param("year", "2026").param("month", "11").param("date", "9")
+                        .param("title", "t").param("body", "b").param("start_time", "09:00").param("end_time", "11:00")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isOk());
+        ArgumentCaptor<PlannerDto> captor = ArgumentCaptor.forClass(PlannerDto.class);
+        verify(plannerService).modifyPlan(captor.capture(), org.mockito.ArgumentMatchers.eq("alice"));
+        assertThat(captor.getValue().getEnd_time()).isEqualTo("11:00");
+
+        mockMvc.perform(multipart(HttpMethod.PUT, "/planner/plan/5")
+                        .param("year", "2026").param("month", "11").param("date", "9")
+                        .param("title", "t").param("body", "b").param("start_time", "09:00").param("end_time", "08:00")
+                        .with(user("alice").roles("USER")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_END_TIME"));
+        mockMvc.perform(multipart(HttpMethod.PUT, "/planner/plan/5")
+                        .param("year", "2026").param("month", "11").param("date", "9")
+                        .param("title", "t").param("body", "b").param("start_time", "09:00").param("end_time", "08:00")
+                        .with(user("mallory").roles("USER")))
+                .andExpect(status().isNotFound());
+    }
+
 }

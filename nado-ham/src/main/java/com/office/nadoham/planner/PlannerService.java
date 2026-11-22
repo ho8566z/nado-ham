@@ -252,6 +252,7 @@ public class PlannerService {
             plannerEntity.setPlanBody(plannerDto.getBody());
             // 시작 시간은 선택이라 비우면 시간이 지워진다
             plannerEntity.setPlanStartTime(StartTimes.toLocalTime(plannerDto.getStart_time()));
+            plannerEntity.setPlanEndTime(StartTimes.toLocalTime(plannerDto.getEnd_time()));
 
             if (plannerDto.getImg_name() != null) {
                 plannerEntity.setPlanImgName(plannerDto.getImg_name());

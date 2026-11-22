@@ -216,6 +216,7 @@ function initEvents() {
             let title = document.querySelector('#write_plan input[name="p_title"]').value;      // 제목
             let body = document.querySelector('#write_plan input[name="p_body"]').value;        // 내용
             let startTime = document.querySelector('#write_plan input[name="p_time"]').value;    // 시작 시간(선택)
+            let endTime = document.querySelector('#write_plan input[name="p_end_time"]').value;   // 종료 시간(선택)
 
             if (title === '') {
                 alert('INPUT NEW PLAN TITLE!!');
@@ -234,7 +235,7 @@ function initEvents() {
 
                 // 비동기 방식으로 서버에 전송
                 // 이미지는 선택이므로 고르지 않았으면 null
-                fetchWritePlan(year, month, date, title, body, startTime, files.length > 0 ? files[0] : null);
+                fetchWritePlan(year, month, date, title, body, startTime, endTime, files.length > 0 ? files[0] : null);
 
             }
 
@@ -315,11 +316,12 @@ function initEvents() {
             let title = document.querySelector('#show_plan input[name="p_title"]').value;
             let body = document.querySelector('#show_plan input[name="p_body"]').value;
             let startTime = document.querySelector('#show_plan input[name="p_time"]').value;
+            let endTime = document.querySelector('#show_plan input[name="p_end_time"]').value;
 
             let fileInput = document.querySelector('#show_plan input[name="p_file"]');
             let file = fileInput.files.length > 0 ? fileInput.files[0] : null;
 
-            fetchModifyPlan(no, year, month, date, title, body, startTime, file);
+            fetchModifyPlan(no, year, month, date, title, body, startTime, endTime, file);
 
         }
 
@@ -454,7 +456,7 @@ function renderDayList() {
         link.className = 'title';
         link.href = '#none';
         link.dataset.no = plan.no;
-        link.textContent = (plan.start_time ? plan.start_time + ' ' : '') + plan.title;
+        link.textContent = planTimeLabel(plan) + plan.title;
         li.appendChild(link);
         items.appendChild(li);
     });
@@ -515,7 +517,7 @@ function showSearchResult(plans, limit) {
 
         let dateSpan = document.createElement('span');
         dateSpan.className = 'search_date';
-        dateSpan.textContent = `${plan.year}-${pad(plan.month)}-${pad(plan.date)}` + (plan.start_time ? ` ${plan.start_time}` : '');
+        dateSpan.textContent = `${plan.year}-${pad(plan.month)}-${pad(plan.date)}` + (plan.start_time ? ` ${planTimeLabel(plan).trim()}` : '');
 
         let link = document.createElement('a');
         link.className = 'title';
@@ -678,6 +680,7 @@ function hideWritePlanView() {
     document.querySelector('#write_plan input[name="p_title"]').value = '';
     document.querySelector('#write_plan input[name="p_body"]').value = '';
     document.querySelector('#write_plan input[name="p_time"]').value = '';
+    document.querySelector('#write_plan input[name="p_end_time"]').value = '';
     document.querySelector('#write_plan input[name="p_file"]').value = '';
 
     document.querySelector('#write_plan').style.display = 'none';
@@ -722,6 +725,7 @@ function showDetailPlanView(plan) {
     showPlan.querySelector('input[name="p_title"]').value = plan.title;
     showPlan.querySelector('input[name="p_body"]').value = plan.body;
     showPlan.querySelector('input[name="p_time"]').value = plan.start_time || '';
+    showPlan.querySelector('input[name="p_end_time"]').value = plan.end_time || '';
 
     // 이미지는 선택이라 없을 수 있다. 없으면 이미지 영역을 숨긴다.
     let planImg = showPlan.querySelector('img.plan_img');
@@ -751,6 +755,7 @@ function hideDetailPlanView() {
     showPlan.querySelector('input[name="p_title"]').value = '';
     showPlan.querySelector('input[name="p_body"]').value = '';
     showPlan.querySelector('input[name="p_time"]').value = '';
+    showPlan.querySelector('input[name="p_end_time"]').value = '';
     showPlan.querySelector('input[name="p_file"]').value = '';
     showPlan.querySelector('img.plan_img').removeAttribute('src');
 
@@ -758,3 +763,11 @@ function hideDetailPlanView() {
 
 }
 
+// 일정 칩·목록에 붙일 시간 표기: "09:00 " 또는 "09:00~10:30 ", 시간이 없으면 빈 문자열
+function planTimeLabel(plan) {
+    if (!plan.start_time) {
+        return '';
+    }
+
+    return plan.start_time + (plan.end_time ? '~' + plan.end_time : '') + ' ';
+}

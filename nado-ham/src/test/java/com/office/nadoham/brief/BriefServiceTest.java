@@ -56,7 +56,7 @@ class BriefServiceTest {
     }
 
     private static BriefPlanRow row(int date, String title) {
-        return new BriefPlanRow(2026, 11, date, title, null);
+        return new BriefPlanRow(2026, 11, date, title, null, null);
     }
 
     private void plansFor(BriefTarget t, BriefPlanRow... rows) {
@@ -145,7 +145,7 @@ class BriefServiceTest {
     @DisplayName("일정이 모두 달력에 없는 날짜(2/31)뿐이어도 SKIP")
     void skipWhenOnlyInvalidDates() {
         when(mapper.selectTargets(WEEK)).thenReturn(List.of(alice));
-        plansFor(alice, new BriefPlanRow(2026, 11, 31, "없는 날짜", null));
+        plansFor(alice, new BriefPlanRow(2026, 11, 31, "없는 날짜", null, null));
 
         assertThat(service.runWeekly(SUNDAY).skipped()).isEqualTo(1);
         verify(sender, never()).send(anyLong(), anyList());

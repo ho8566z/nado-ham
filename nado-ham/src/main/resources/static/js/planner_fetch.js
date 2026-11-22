@@ -1,4 +1,4 @@
-async function fetchWritePlan(year, month, date, title, body, startTime, file) {
+async function fetchWritePlan(year, month, date, title, body, startTime, endTime, file) {
     console.log('fetchWritePlan() CALLED!!');
 
     let formData = new FormData();
@@ -8,6 +8,7 @@ async function fetchWritePlan(year, month, date, title, body, startTime, file) {
     formData.append("title", title);
     formData.append("body", body);
     formData.append("start_time", startTime || '');       // 비어 있으면 시간 없음
+    formData.append("end_time", endTime || '');           // 비어 있으면 종료 시간 없음(시작 시간이 있어야 함)
     if (file) {
         formData.append("file", file);
     }
@@ -102,7 +103,7 @@ async function fetchGetCurrentMonthPlans() {
                 link.className = 'title';
                 link.href = '#none';
                 link.dataset.no = dto.no;
-                link.textContent = (dto.start_time ? dto.start_time + ' ' : '') + dto.title;
+                link.textContent = planTimeLabel(dto) + dto.title;
                 li.appendChild(link);
                 targetElement.appendChild(li);
             }
@@ -249,7 +250,7 @@ async function fetchRemovePlan(no) {
 
 }
 
-async function fetchModifyPlan(no, year, month, date, title, body, startTime, file) {
+async function fetchModifyPlan(no, year, month, date, title, body, startTime, endTime, file) {
     console.log('fetchModifyPlan() CALLED!!');
 
     let formData = new FormData();
@@ -259,6 +260,7 @@ async function fetchModifyPlan(no, year, month, date, title, body, startTime, fi
     formData.append('title', title);
     formData.append('body', body);
     formData.append('start_time', startTime || '');         // 비우면 서버가 시간을 지운다
+    formData.append('end_time', endTime || '');             // 비우면 종료 시간을 지운다
 
     if (file != null || file != undefined) {
         formData.append('file', file);

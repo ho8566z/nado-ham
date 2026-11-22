@@ -228,6 +228,7 @@ class ThymeleafRenderingTest {
 
         assertThat(body).contains("name=\"s_keyword\"").contains("id=\"day_list\"").contains("class=\"btn_stats\" href=\"/planner/stats\"");
         assertThat(body.split("name=\"p_time\"", -1).length - 1).isEqualTo(2);
+        assertThat(body.split("name=\"p_end_time\"", -1).length - 1).as("종료 시간 입력칸(등록·상세)").isEqualTo(2);
         assertThat(body).contains("src=\"/js/planner.js\"").contains("src=\"/js/planner_fetch.js\"").contains("href=\"/css/planner.css\"");
         assertThat(body).as("목표 활동 겹쳐 보기").contains("src=\"/js/planner_goal.js\"").contains("id=\"goal_legend\"");
     }

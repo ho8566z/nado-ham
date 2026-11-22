@@ -27,6 +27,7 @@ public class PlannerDto {
     private String body;
     private String img_name;
     private String start_time;      // 시작 시간(HH:mm, 선택)
+    private String end_time;        // 종료 시간(HH:mm, 선택. 시작 시간이 있을 때만)
     private String reg_date;
     private String mod_date;
 
@@ -46,6 +47,7 @@ public class PlannerDto {
                 .planBody(body)
                 .planImgName(img_name)
                 .planStartTime(StartTimes.toLocalTime(start_time))
+                .planEndTime(StartTimes.toLocalTime(end_time))
                 .planRegDate(reg_date != null ? LocalDateTime.parse(reg_date, formatter) : null)
                 .planModDate(mod_date != null ? LocalDateTime.parse(mod_date, formatter) : null)
                 .build();
