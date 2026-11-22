@@ -99,7 +99,7 @@ class GoalTodayControllerTest {
     @Test
     @DisplayName("오늘 탭 데이터는 로그인한 본인 아이디로 조회한다")
     void today_usesPrincipal() throws Exception {
-        when(goalTodayService.today("alice")).thenReturn(new TodayResponse("2026-11-23", List.of(), List.of(), null, 0));
+        when(goalTodayService.today("alice")).thenReturn(new TodayResponse("2026-11-23", List.of(), List.of(), null, 0, 0));
 
         mockMvc.perform(get("/goal/today").with(user("alice").roles("USER")))
                 .andExpect(status().isOk())
