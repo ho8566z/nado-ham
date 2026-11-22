@@ -209,7 +209,7 @@ class GoalRetroServiceTest {
 
         assertThat(plans).hasSize(3);
         assertThat(plans).extracting(ActivityPlan::date).allMatch(d -> d.compareTo("2026-11-23") >= 0 && d.compareTo("2026-11-29") <= 0);
-        assertThat(plans.get(0).title()).isEqualTo("빠르게 걷기 20분");
+        assertThat(plans.get(0).title()).isEqualTo("빠르게 걷기");
     }
 
     @Test
@@ -257,7 +257,7 @@ class GoalRetroServiceTest {
         assertThat(week2).extracting(a -> a.getActDate().toString()).containsExactly("2026-11-24", "2026-11-28");
         assertThat(week2).extracting(a -> a.getStartTime().toString()).containsExactly("07:00", "08:30");
         assertThat(week2).extracting(GoalActivityEntity::getMinutes).containsOnly(15);
-        assertThat(week2.get(0).getTitle()).isEqualTo("빠르게 걷기 20분");
+        assertThat(week2.get(0).getTitle()).isEqualTo("빠르게 걷기");
         assertThat(goal.getWeeklyCount()).isEqualTo(2);
         assertThat(goal.getMinutes()).isEqualTo(15);
         assertThat(response.activities()).hasSize(5);

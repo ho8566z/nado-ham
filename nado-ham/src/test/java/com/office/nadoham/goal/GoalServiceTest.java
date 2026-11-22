@@ -68,7 +68,7 @@ class GoalServiceTest {
 
         assertThat(plans).extracting(ActivityPlan::date).containsExactly("2026-11-23", "2026-11-24", "2026-11-26");
         assertThat(plans).extracting(ActivityPlan::startTime).containsOnly("19:30");
-        assertThat(plans).extracting(ActivityPlan::title).containsExactly("걷기 20분", "스트레칭 + 걷기", "걷기 20분");
+        assertThat(plans).extracting(ActivityPlan::title).containsExactly("걷기", "스트레칭 + 걷기", "걷기");
         assertThat(plans).extracting(ActivityPlan::conflict).containsOnly(false);
     }
 
@@ -136,7 +136,7 @@ class GoalServiceTest {
         List<GoalActivityEntity> activities = activityCaptor.getValue();
         assertThat(activities).extracting(a -> a.getActDate().toString()).containsExactly("2026-11-23", "2026-11-24", "2026-11-26");
         assertThat(activities).extracting(a -> a.getStartTime().toString()).containsExactly("19:30", "07:00", "19:30");
-        assertThat(activities).extracting(GoalActivityEntity::getTitle).containsExactly("걷기 20분", "스트레칭 + 걷기", "걷기 20분");
+        assertThat(activities).extracting(GoalActivityEntity::getTitle).containsExactly("걷기", "스트레칭 + 걷기", "걷기");
         assertThat(response.activities()).hasSize(3);
     }
 
