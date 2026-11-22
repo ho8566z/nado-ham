@@ -64,6 +64,10 @@ public class PlannerEntity {
     @Column(name = "START_TIME")
     private LocalTime planStartTime;
 
+    // 종료 시간(선택). 시작 시간이 있을 때만 쓰고 같은 날 안에서 시작보다 뒤다. 없으면 NULL
+    @Column(name = "END_TIME")
+    private LocalTime planEndTime;
+
     @Column(name = "REG_DATE")
     private LocalDateTime planRegDate;
 
@@ -97,6 +101,7 @@ public class PlannerEntity {
                 .body(planBody)
                 .img_name(planImgName)
                 .start_time(StartTimes.format(planStartTime))
+                .end_time(StartTimes.format(planEndTime))
                 .reg_date(planRegDate != null ? planRegDate.format(formatter) : null)
                 .mod_date(planModDate != null ? planModDate.format(formatter) : null)
                 .build();

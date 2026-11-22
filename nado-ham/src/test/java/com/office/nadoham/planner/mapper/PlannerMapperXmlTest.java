@@ -94,7 +94,7 @@ class PlannerMapperXmlTest {
         String sql = sql("searchPlans", null);
 
         assertThat(sql).contains("p.`DATE` AS `date`").contains("p.`YEAR` AS `year`").contains("p.`MONTH` AS `month`");
-        assertThat(sql).contains("TIME_FORMAT(p.START_TIME, '%H:%i') AS start_time");
+        assertThat(sql).contains("TIME_FORMAT(p.START_TIME, '%H:%i') AS start_time").contains("TIME_FORMAT(p.END_TIME, '%H:%i') AS end_time");
     }
 
     private String statSql(String statementId) {

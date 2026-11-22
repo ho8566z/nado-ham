@@ -52,4 +52,26 @@ class StartTimesTest {
         assertThat(StartTimes.format(null)).isNull();
     }
 
+    @Test
+    @DisplayName("종료 시간: 비었으면 null, 시작 시간이 있고 시작보다 뒤면 HH:mm 으로 받는다")
+    void normalizeEnd_valid() {
+        assertThat(StartTimes.normalizeEnd(null, "09:00")).isNull();
+        assertThat(StartTimes.normalizeEnd("  ", null)).isNull();
+        assertThat(StartTimes.normalizeEnd("10:30", "09:00")).isEqualTo("10:30");
+        assertThat(StartTimes.normalizeEnd("10:30:45", "10:29")).isEqualTo("10:30");
+    }
+
+    @Test
+    @DisplayName("종료 시간: 형식 오류·시작 시간 없음·시작과 같거나 앞서면 IllegalArgumentException")
+    void normalizeEnd_invalid() {
+        assertThatThrownBy(() -> StartTimes.normalizeEnd("25:00", "09:00"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("종료 시간 형식");
+        assertThatThrownBy(() -> StartTimes.normalizeEnd("10:00", null))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("시작 시간이 있어야");
+        assertThatThrownBy(() -> StartTimes.normalizeEnd("09:00", "09:00"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("뒤여야");
+        assertThatThrownBy(() -> StartTimes.normalizeEnd("08:59", "09:00"))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("뒤여야");
+    }
+
 }

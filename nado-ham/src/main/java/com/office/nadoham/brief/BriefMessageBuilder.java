@@ -27,7 +27,7 @@ public final class BriefMessageBuilder {
         for (BriefPlanRow plan : plans) {
             LocalDate date = toDate(plan);
             if (date != null && !date.isBefore(weekStart) && !date.isAfter(weekEnd)) {
-                entries.add(new Entry(date, plan.startTime(), cleanTitle(plan.title())));
+                entries.add(new Entry(date, plan.startTime(), plan.endTime(), cleanTitle(plan.title())));
             }
         }
         if (entries.isEmpty()) {
@@ -51,7 +51,7 @@ public final class BriefMessageBuilder {
                 currentDay = e.date;
                 chunker.dayHeader(dayLabel(currentDay));
             }
-            chunker.item(dayLabel(currentDay), (e.time == null ? "" : e.time + " ") + e.title);
+            chunker.item(dayLabel(currentDay), timeLabel(e) + e.title);
         }
 
         chunker.line("");
@@ -86,7 +86,15 @@ public final class BriefMessageBuilder {
         return shortDate(d) + "(" + DAY_NAMES[d.getDayOfWeek().getValue() - 1] + ")";
     }
 
-    private record Entry(LocalDate date, String time, String title) {
+    // "09:00 " 또는 종료 시간이 있으면 "09:00~10:30 ". 시간이 없으면 빈 문자열
+    private static String timeLabel(Entry e) {
+        if (e.time == null) {
+            return "";
+        }
+        return e.time + (e.endTime == null ? "" : "~" + e.endTime) + " ";
+    }
+
+    private record Entry(LocalDate date, String time, String endTime, String title) {
     }
 
     // 줄을 모아 MAX_LENGTH를 넘지 않게 조각으로 나눈다. 하루 목록 중간에서 나뉘면 다음 조각 머리에 날짜를 다시 적는다.

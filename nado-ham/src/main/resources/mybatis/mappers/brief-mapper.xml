@@ -37,7 +37,8 @@
             p.`MONTH` AS `month`,
             p.`DATE` AS `date`,
             p.TITLE AS title,
-            TIME_FORMAT(p.START_TIME, '%H:%i') AS startTime
+            TIME_FORMAT(p.START_TIME, '%H:%i') AS startTime,
+            TIME_FORMAT(p.END_TIME, '%H:%i') AS endTime
         FROM
             PLAN p
         WHERE

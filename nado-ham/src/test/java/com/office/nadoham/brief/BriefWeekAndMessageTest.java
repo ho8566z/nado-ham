@@ -13,7 +13,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BriefWeekAndMessageTest {
 
     private static BriefPlanRow plan(int y, int m, int d, String title, String time) {
-        return new BriefPlanRow(y, m, d, title, time);
+        return new BriefPlanRow(y, m, d, title, time, null);
+    }
+
+    private static BriefPlanRow plan(int y, int m, int d, String title, String time, String endTime) {
+        return new BriefPlanRow(y, m, d, title, time, endTime);
     }
 
     // ---------------------------------------------------------------- 주 계산
@@ -184,6 +188,18 @@ class BriefWeekAndMessageTest {
         }
 
         assertThat(BriefMessageBuilder.build(LocalDate.of(2026, 11, 9), plans)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("브리핑 메시지: 종료 시간이 있으면 09:00~10:30 처럼 범위로, 없으면 시작 시간만 보인다")
+    void messageShowsTimeRange() {
+        List<String> parts = BriefMessageBuilder.build(LocalDate.of(2026, 11, 9), List.of(
+                plan(2026, 11, 10, "회의", "09:00", "10:30"),
+                plan(2026, 11, 10, "점심", "12:00", null),
+                plan(2026, 11, 10, "종일", null, null)));
+
+        assertThat(parts).hasSize(1);
+        assertThat(parts.get(0)).contains("09:00~10:30 회의").contains("12:00 점심").doesNotContain("12:00~");
     }
 
 }

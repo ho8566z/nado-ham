@@ -79,7 +79,7 @@ class BriefMapperXmlTest {
         assertThat(text).contains("p.OWNER_ID = ?");
         assertThat(text).contains("(p.`YEAR` * 10000 + p.`MONTH` * 100 + p.`DATE`) BETWEEN ? AND ?");
         assertThat(text).contains("ORDER BY p.`YEAR`, p.`MONTH`, p.`DATE`, (p.START_TIME IS NULL) ASC, p.START_TIME ASC, p.NO ASC");
-        assertThat(text).contains("p.`DATE` AS `date`").contains("TIME_FORMAT(p.START_TIME, '%H:%i') AS startTime");
+        assertThat(text).contains("p.`DATE` AS `date`").contains("TIME_FORMAT(p.START_TIME, '%H:%i') AS startTime").contains("TIME_FORMAT(p.END_TIME, '%H:%i') AS endTime");
         assertThat(sql.getParameterMappings()).extracting(m -> m.getProperty()).containsExactly("ownerId", "fromKey", "toKey");
     }
 

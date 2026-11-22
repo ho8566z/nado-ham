@@ -173,4 +173,19 @@ class GoalServiceTest {
         verify(goalRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("미리보기: 일정에 종료 시간이 있으면 그 시간까지만 겹침으로 보고(60분 가정 안 함), 종료 시간 안에 시작하면 겹침이다")
+    void preview_usesPlanEndTime() {
+        PlannerDto endedEarly = PlannerDto.builder().title("짧은 회의").start_time("19:00").end_time("19:20").build();
+        PlannerDto longer = PlannerDto.builder().title("긴 회의").start_time("19:00").end_time("20:00").build();
+
+        when(plannerService.getPlansOn(any(), anyString())).thenReturn(List.of(endedEarly));
+        assertThat(goalService.previewFirstWeek("alice", previewRequest("EXERCISE_HABIT", 1, WEEKDAYS)))
+                .extracting(ActivityPlan::conflict).containsOnly(false);
+
+        when(plannerService.getPlansOn(any(), anyString())).thenReturn(List.of(longer));
+        assertThat(goalService.previewFirstWeek("alice", previewRequest("EXERCISE_HABIT", 1, WEEKDAYS)))
+                .extracting(ActivityPlan::conflict).containsOnly(true);
+    }
+
 }

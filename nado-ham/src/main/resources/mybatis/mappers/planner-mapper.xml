@@ -20,6 +20,7 @@
             p.BODY AS body,
             p.IMG_NAME AS img_name,
             TIME_FORMAT(p.START_TIME, '%H:%i') AS start_time,
+            TIME_FORMAT(p.END_TIME, '%H:%i') AS end_time,
             DATE_FORMAT(p.REG_DATE, '%Y-%m-%d %H:%i:%s') AS reg_date,
             DATE_FORMAT(p.MOD_DATE, '%Y-%m-%d %H:%i:%s') AS mod_date
         FROM

@@ -97,4 +97,30 @@ class PlannerServiceTimeTest {
         assertThat(plan(2, 8, null).toDto().getStart_time()).isNull();
     }
 
+    @Test
+    @DisplayName("수정하면 종료 시간이 저장되고, 비우면 지워진다")
+    void modify_setsAndClearsEndTime() {
+        PlannerEntity entity = plan(1, 8, LocalTime.of(9, 0));
+        when(plannerRepository.findByPlanNoAndPlanOwnerId(1, "alice")).thenReturn(entity);
+
+        plannerService.modifyPlan(PlannerDto.builder().no(1).year(2026).month(11).date(8)
+                .title("t").body("b").start_time("09:00").end_time("10:30").build(), "alice");
+        assertThat(entity.getPlanEndTime()).isEqualTo(LocalTime.of(10, 30));
+
+        plannerService.modifyPlan(PlannerDto.builder().no(1).year(2026).month(11).date(8)
+                .title("t").body("b").start_time("09:00").end_time(null).build(), "alice");
+        assertThat(entity.getPlanEndTime()).isNull();
+    }
+
+    @Test
+    @DisplayName("DTO와 엔티티 사이에서 종료 시간이 HH:mm으로 오간다")
+    void endTimeMapping() {
+        assertThat(PlannerDto.builder().end_time("10:30").build().toEntity().getPlanEndTime()).isEqualTo(LocalTime.of(10, 30));
+
+        PlannerEntity entity = PlannerEntity.builder().planNo(1).planOwnerId("alice").planYear(2026).planMonth(11).planDate(8)
+                .planStartTime(LocalTime.of(9, 0)).planEndTime(LocalTime.of(10, 30)).build();
+        assertThat(entity.toDto().getEnd_time()).isEqualTo("10:30");
+        assertThat(plan(2, 8, null).toDto().getEnd_time()).isNull();
+    }
+
 }
