@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.office.calendar.planner.mapper.PlannerMapper">
+<mapper namespace="com.office.nadoham.planner.mapper.PlannerMapper">
 
     <!-- 일정 검색: 항상 본인(OWNER_ID) 일정만 대상이다.
          keyword가 있으면 제목 또는 내용에 포함된 일정으로 좁힌다.
          LIKE의 와일드카드(%, _)는 서비스에서 '!'로 이스케이프해서 넘기므로 ESCAPE '!'를 쓴다.
          DATE, YEAR, MONTH는 예약어와 겹치기 쉬워 컬럼 이름과 별칭에 백틱을 쓴다. -->
     <select id="searchPlans"
-            resultType="com.office.calendar.planner.PlannerDto">
+            resultType="com.office.nadoham.planner.PlannerDto">
         SELECT
             p.NO AS `no`,
             p.ORI_NO AS ori_no,
@@ -53,7 +53,7 @@
 
     <!-- 요일별 일정 수: 요일 번호 = (1일의 요일 + 날짜 - 1) % 7 + 1 -->
     <select id="countByWeekday"
-            resultType="com.office.calendar.planner.PlannerStatRow">
+            resultType="com.office.nadoham.planner.PlannerStatRow">
         SELECT
             MOD(DAYOFWEEK(<include refid="firstDay"/>) - 1 + p.`DATE` - 1, 7) + 1 AS bucket,
             COUNT(*) AS cnt
@@ -69,7 +69,7 @@
 
     <!-- 주별 일정 수: 주 번호 = (1일의 요일 + 날짜 - 1) / 7 의 몫 + 1 (화면 달력의 행과 같다) -->
     <select id="countByWeek"
-            resultType="com.office.calendar.planner.PlannerStatRow">
+            resultType="com.office.nadoham.planner.PlannerStatRow">
         SELECT
             FLOOR((DAYOFWEEK(<include refid="firstDay"/>) - 1 + p.`DATE` - 1) / 7) + 1 AS bucket,
             COUNT(*) AS cnt
