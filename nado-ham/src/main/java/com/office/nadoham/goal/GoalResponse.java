@@ -16,6 +16,7 @@ public record GoalResponse(
         String endDate,
         int weeklyCount,
         int minutes,
+        String startTime,
         String status,
         List<ActivityResponse> activities) {
 

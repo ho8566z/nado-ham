@@ -191,8 +191,20 @@ function goalStatusLabel(status) {
     return labels[status] || '';
 }
 
-// 목표 카드의 일시 중지 / 다시 시작 버튼(마친 목표에는 없다)
-function goalActions(goal) {
+// 남은 기간 문구: 진행 중이면 " · 남은 기간 N일", 종료일이 지났으면 안내, 그 밖의 상태는 붙이지 않는다
+function remainingText(goal) {
+    if (goal.status !== 'ACTIVE') {
+        return '';
+    }
+
+    let end = new Date(goal.endDate + 'T23:59:59');
+    let days = Math.ceil((end.getTime() - Date.now()) / 86400000);
+
+    return days >= 0 ? ' · 남은 기간 ' + days + '일' : ' · 예정 기간이 지났어요';
+}
+
+// 목표 카드의 일시 중지 / 다시 시작 버튼과 실행 조건 수정(마친 목표에는 없다)
+function goalActions(goal, card) {
     if (goal.status !== 'ACTIVE' && goal.status !== 'PAUSED') {
         return null;
     }
@@ -207,6 +219,14 @@ function goalActions(goal) {
     button.addEventListener('click', function () { changeGoalState(goal, isPaused ? 'resume' : 'pause', button); });
     box.appendChild(button);
 
+    if (!isPaused) {
+        let edit = document.createElement('button');
+        edit.type = 'button';
+        edit.textContent = '횟수·시간 수정';
+        edit.addEventListener('click', function () { toggleSettingsForm(goal, card); });
+        box.appendChild(edit);
+    }
+
     if (isPaused) {
         let note = document.createElement('span');
         note.className = 'goal_note';
@@ -215,6 +235,109 @@ function goalActions(goal) {
     }
 
     return box;
+}
+
+// 실행 조건 수정 폼(카드 안에서 열고 닫는다)
+function toggleSettingsForm(goal, card) {
+    let existing = card.querySelector('.settings_form');
+    if (existing) {
+        existing.remove();
+        return;
+    }
+
+    let form = document.createElement('form');
+    form.className = 'settings_form';
+
+    let count = document.createElement('select');
+    count.name = 'weekly_count';
+    for (let i = 1; i <= 7; i++) {
+        let option = document.createElement('option');
+        option.value = String(i);
+        option.textContent = '주 ' + i + '회';
+        count.appendChild(option);
+    }
+    count.value = String(goal.weeklyCount);
+
+    let minutes = document.createElement('input');
+    minutes.type = 'number';
+    minutes.name = 'minutes';
+    minutes.min = '5';
+    minutes.max = '120';
+    minutes.step = '5';
+    minutes.value = String(goal.minutes);
+
+    let time = document.createElement('input');
+    time.type = 'time';
+    time.name = 'start_time';
+    time.value = goal.startTime;
+
+    let hint = document.createElement('p');
+    hint.className = 'settings_hint';
+    hint.textContent = '소요 시간·시각은 아직 하지 않은 활동 전부에 적용돼요. 횟수는 이번 주에 바로 적용돼요(줄이면 뒤쪽 예정 활동이 지워지고, 늘리면 남은 빈 날에 활동이 더해져요). 끝낸 활동은 바뀌지 않아요.';
+
+    let countLabel = document.createElement('label');
+    countLabel.append('횟수 ', count);
+    let minutesLabel = document.createElement('label');
+    minutesLabel.append('1회 소요 시간(분) ', minutes);
+    let timeLabel = document.createElement('label');
+    timeLabel.append('시작 시각 ', time);
+
+    let save = document.createElement('button');
+    save.type = 'submit';
+    save.textContent = '저장';
+
+    form.append(countLabel, minutesLabel, timeLabel, hint, save);
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        saveSettings(goal, form, save);
+    });
+    card.appendChild(form);
+}
+
+async function saveSettings(goal, form, button) {
+    button.disabled = true;
+    let response = await fetch('/goal/' + goal.no + '/settings', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            weeklyCount: parseInt(form.elements['weekly_count'].value, 10),
+            minutes: parseInt(form.elements['minutes'].value, 10),
+            startTime: form.elements['start_time'].value
+        })
+    });
+    let data = await response.json().catch(function () { return {}; });
+    button.disabled = false;
+
+    if (!response.ok) {
+        showMessage(data.message || '수정하지 못했습니다.', true);
+        return;
+    }
+
+    showMessage(settingsResultText(data));
+    loadGoals();
+    if (typeof loadToday === 'function') {
+        loadToday();
+    }
+    if (typeof loadRetros === 'function') {
+        loadRetros();
+    }
+}
+
+// 저장 결과 안내: 늘려서 만든 활동·지운 활동 수와 겹침 경고
+function settingsResultText(result) {
+    let text = '실행 조건을 바꿨어요.';
+    if (result.removed > 0) {
+        text += ' 이번 주 예정 활동 ' + result.removed + '개를 지웠어요.';
+    }
+    if (result.added.length > 0) {
+        text += ' 이번 주에 활동 ' + result.added.length + '개를 더했어요(' + result.added.map(function (a) { return a.date; }).join(', ') + ').';
+        let conflicts = result.added.filter(function (a) { return a.conflict; });
+        if (conflicts.length > 0) {
+            text += ' ' + conflicts.length + '개는 같은 시간대 일정과 겹쳐요. 오늘 탭에서 옮길 수 있어요.';
+        }
+    }
+
+    return text;
 }
 
 async function changeGoalState(goal, action, button) {
@@ -265,8 +388,14 @@ async function loadGoals() {
         title.textContent = '[' + goal.theme + '] ' + goal.courseName + goalStatusLabel(goal.status);
         let period = document.createElement('span');
         period.className = 'period';
-        period.textContent = goal.startDate + ' ~ ' + goal.endDate + ' · 주 ' + goal.weeklyCount + '회 · ' + goal.minutes + '분';
+        period.textContent = goal.startDate + ' ~ ' + goal.endDate + ' · 주 ' + goal.weeklyCount + '회 · ' + goal.minutes + '분 · ' + goal.startTime + ' 시작'
+            + remainingText(goal);
         card.append(title, period);
+
+        let checkpoint = document.createElement('span');
+        checkpoint.className = 'checkpoint';
+        checkpoint.textContent = '마지막 주에 확인할 결과: ' + goal.checkpoint;
+        card.appendChild(checkpoint);
 
         let activities = document.createElement('ul');
         goal.activities.forEach(function (activity) {
@@ -276,7 +405,7 @@ async function loadGoals() {
         });
         card.appendChild(activities);
 
-        let actions = goalActions(goal);
+        let actions = goalActions(goal, card);
         if (actions) {
             card.appendChild(actions);
         }

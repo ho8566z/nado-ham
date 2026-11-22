@@ -25,6 +25,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -62,10 +63,16 @@ class GoalTodayControllerTest {
         }
 
         @Bean
+        GoalSettingsService goalSettingsService() {
+            return Mockito.mock(GoalSettingsService.class);
+        }
+
+        @Bean
         GoalController goalController(GoalService goalService, GoalTodayService goalTodayService,
                                       GoalCalendarService goalCalendarService, GoalRetroService goalRetroService,
-                                      GoalLifecycleService goalLifecycleService) {
-            return new GoalController(goalService, goalTodayService, goalCalendarService, goalRetroService, goalLifecycleService);
+                                      GoalLifecycleService goalLifecycleService, GoalSettingsService goalSettingsService) {
+            return new GoalController(goalService, goalTodayService, goalCalendarService, goalRetroService,
+                    goalLifecycleService, goalSettingsService);
         }
 
     }
@@ -80,12 +87,14 @@ class GoalTodayControllerTest {
     private GoalRetroService goalRetroService;
     @Autowired
     private GoalLifecycleService goalLifecycleService;
+    @Autowired
+    private GoalSettingsService goalSettingsService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        Mockito.reset(goalTodayService, goalCalendarService, goalRetroService, goalLifecycleService);
+        Mockito.reset(goalTodayService, goalCalendarService, goalRetroService, goalLifecycleService, goalSettingsService);
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity())
                 .defaultRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
@@ -191,7 +200,7 @@ class GoalTodayControllerTest {
         when(goalRetroService.pending("alice")).thenReturn(List.of(retro));
         when(goalRetroService.previewNext(Mockito.eq("alice"), Mockito.eq(1), any()))
                 .thenReturn(List.of(new ActivityPlan("2026-11-24", "19:30", 20, "빠르게 걷기 20분", "안내", false, null)));
-        GoalResponse goalResponse = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 3, 20, "ACTIVE", List.of());
+        GoalResponse goalResponse = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 3, 20, "19:30", "ACTIVE", List.of());
         when(goalRetroService.startNext(Mockito.eq("alice"), Mockito.eq(1), any())).thenReturn(goalResponse);
         when(goalRetroService.finish("alice", 1)).thenReturn(goalResponse);
 
@@ -244,7 +253,7 @@ class GoalTodayControllerTest {
     @Test
     @DisplayName("목표 일시 중지·다시 시작은 본인 아이디로 처리하고 없는 목표 404, 상태·한도 문제는 409·400 으로 알린다")
     void pauseResume() throws Exception {
-        GoalResponse paused = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 3, 20, "PAUSED", List.of());
+        GoalResponse paused = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 3, 20, "19:30", "PAUSED", List.of());
         when(goalLifecycleService.pause("alice", 1)).thenReturn(paused);
         when(goalLifecycleService.pause("alice", 404)).thenThrow(new GoalException("GOAL_NOT_FOUND", "없는 목표입니다."));
         when(goalLifecycleService.pause("alice", 409)).thenThrow(new GoalException("INVALID_STATE", "진행 중인 목표만 가능합니다."));
@@ -262,6 +271,31 @@ class GoalTodayControllerTest {
         mockMvc.perform(post("/goal/400/resume").with(user("alice").roles("USER")))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("GOAL_LIMIT"));
         mockMvc.perform(post("/goal/1/pause").with(user("boss").roles("ADMIN"))).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("목표 실행 조건 수정: 본인 아이디로 처리하고, 상태·횟수 문제는 409, 없는 목표 404, 입력 오류 400 으로 알린다")
+    void settings() throws Exception {
+        GoalResponse goal = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 2, 25, "19:30", "ACTIVE", List.of());
+        when(goalSettingsService.update(Mockito.eq("alice"), Mockito.eq(1), any())).thenReturn(new SettingsResult(goal, List.of(), 1));
+        when(goalSettingsService.update(Mockito.eq("alice"), Mockito.eq(404), any())).thenThrow(new GoalException("GOAL_NOT_FOUND", "없는 목표입니다."));
+        when(goalSettingsService.update(Mockito.eq("alice"), Mockito.eq(409), any())).thenThrow(new GoalException("CANNOT_REDUCE", "줄일 수 없습니다."));
+        when(goalSettingsService.update(Mockito.eq("alice"), Mockito.eq(410), any())).thenThrow(new GoalException("WEEK_ENDED", "끝난 주입니다."));
+        when(goalSettingsService.update(Mockito.eq("alice"), Mockito.eq(400), any())).thenThrow(new GoalException("INVALID_WEEKLY_COUNT", "1~7회입니다."));
+        String body = "{\"weeklyCount\":2,\"minutes\":25,\"startTime\":\"19:30\"}";
+
+        mockMvc.perform(put("/goal/1/settings").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.removed").value(1)).andExpect(jsonPath("$.goal.weeklyCount").value(2));
+        mockMvc.perform(put("/goal/404/settings").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(put("/goal/409/settings").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CANNOT_REDUCE"));
+        mockMvc.perform(put("/goal/410/settings").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("WEEK_ENDED"));
+        mockMvc.perform(put("/goal/400/settings").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/goal/1/settings").with(user("boss").roles("ADMIN")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().is3xxRedirection());
     }
 
 }
