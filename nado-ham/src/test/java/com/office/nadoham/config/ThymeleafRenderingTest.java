@@ -132,7 +132,10 @@ class ThymeleafRenderingTest {
     private WebApplicationContext context;
 
     private String render(String path, RequestPostProcessor... auth) throws Exception {
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity())
+                .defaultRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .build();
         var request = get(path);
         for (RequestPostProcessor p : auth) {
             request = request.with(p);
@@ -180,7 +183,7 @@ class ThymeleafRenderingTest {
         String body = withoutComments(render("/"));
 
         assertThat(body).contains("href=\"/member/signup\"").contains("href=\"/member/signin\"");
-        assertThat(body).doesNotContain("href=\"/member/modify\"").doesNotContain("href=\"/member/signout_confirm\"");
+        assertThat(body).doesNotContain("href=\"/member/modify\"").doesNotContain("signout_form");
         assertThat(body).doesNotContain("&nbsp;");
     }
 
@@ -198,7 +201,9 @@ class ThymeleafRenderingTest {
     @DisplayName("로그인 머리글: USER 는 modify·signout·planner 링크, 관리자는 admin 링크(planner 는 숨김)")
     void loggedInHeader() throws Exception {
         String user = withoutComments(render("/planner", asUser()));
-        assertThat(user).contains("href=\"/member/modify\"").contains("href=\"/member/signout_confirm\"").contains("href=\"/planner\"");
+        assertThat(user).contains("href=\"/member/modify\"").contains("class=\"signout_link\"").contains("href=\"/planner\"");
+        assertThat(user).as("로그아웃은 POST 폼(토큰 포함)").contains("id=\"signout_form\"").contains("action=\"/member/signout_confirm\"").contains("name=\"_csrf\"");
+        assertThat(user).as("fetch 용 토큰").contains("id=\"csrf_token\"").contains("data-header=\"X-CSRF-TOKEN\"").contains("src=\"/js/csrf.js\"");
         assertThat(user).doesNotContain("href=\"/member/signin\"").doesNotContain("href=\"/admin/users\"");
 
         String admin = withoutComments(render("/admin/users", asAdmin()));

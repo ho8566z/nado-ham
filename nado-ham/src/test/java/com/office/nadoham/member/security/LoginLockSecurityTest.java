@@ -102,7 +102,10 @@ class LoginLockSecurityTest {
     @BeforeEach
     void setUp() {
         TestConfig.TABLE.clear();
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity())
+                .defaultRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .build();
     }
 
     private MockHttpServletRequestBuilder signin(String id, String pw, String ip) {

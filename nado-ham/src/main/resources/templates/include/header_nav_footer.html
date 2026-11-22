@@ -31,10 +31,15 @@
 
         <th:block sec:authorize="hasAnyRole('PRE_USER', 'USER', 'ADMIN')">
             <a th:href="@{/member/modify}">modify</a>
-            <a th:href="@{/member/signout_confirm}">signout</a>
+            <!-- CSRF 보호 때문에 로그아웃은 POST 로만 받는다. 링크를 누르면 아래 숨은 폼을 보낸다(csrf.js) -->
+            <a href="#none" class="signout_link">signout</a>
+            <form id="signout_form" th:action="@{/member/signout_confirm}" method="post" hidden></form>
         </th:block>
 
     </div>
+    <!-- fetch 요청에 붙일 CSRF 토큰(csrf.js 가 읽는다) -->
+    <div id="csrf_token" hidden th:attr="data-token=${_csrf.token},data-header=${_csrf.headerName}"></div>
+    <script th:src="@{/js/csrf.js}"></script>
     <script th:src="@{/js/menu.js}" defer></script>
 </header>
 

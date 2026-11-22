@@ -8,6 +8,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -34,9 +35,11 @@ public class SecurityConfig {
             http.addFilterBefore(new LoginLockFilter(loginLock), UsernamePasswordAuthenticationFilter.class);
         }
 
+        // CSRF 보호는 켜 둔다(기본: 세션에 토큰 저장). 폼은 th:action 이 숨은 토큰 입력을 넣고,
+        // fetch 는 static/js/csrf.js 가 화면에 내려준 토큰을 요청 헤더(X-CSRF-TOKEN)에 붙인다. 로그아웃도 POST 로만 받는다.
         http
                 .cors(cors -> cors.disable())
-                .csrf(csrf -> csrf.disable());
+                .csrf(Customizer.withDefaults());
 
         http
                 .authorizeHttpRequests(auth -> auth
