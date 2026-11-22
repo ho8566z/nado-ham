@@ -11,8 +11,10 @@ public record Course(
         String checkpoint,
         int defaultWeeklyCount,
         int defaultMinutes,
+        String shortGuide,
         List<List<Session>> weeks) {
 
+    // shortGuide 는 '5분만 하기'에서 보여 주는 같은 목표의 짧은 버전이다.
     // 활동 한 번의 이름과 오늘 할 일 안내
     public record Session(String title, String guide) {
     }

@@ -12,7 +12,7 @@ public final class CourseCatalog {
             new Course("EXERCISE_HABIT", "운동", "주 3회 움직이는 습관 만들기",
                     "1개월 동안 주 3회 움직이는 습관 만들기",
                     "4주 차에 주 3회를 채우는지, 한 번에 30분을 걸을 수 있는지 확인합니다.",
-                    3, 20,
+                    3, 20, "집 앞까지만 5분 걷고 오기.",
                     List.of(
                             List.of(new Course.Session("걷기 20분", "편한 속도로 20분 걷기. 숨이 차면 속도를 낮추세요."),
                                     new Course.Session("스트레칭 + 걷기", "5분 스트레칭 뒤 15분 걷기."),
@@ -29,7 +29,7 @@ public final class CourseCatalog {
             new Course("TRAVEL_ENGLISH", "공부", "여행 영어로 주문하고 길 묻기",
                     "여행 영어로 주문과 길 묻기 연습하기",
                     "4주 차에 주문과 길 묻기 상황을 보지 않고 한 번씩 말해 봅니다.",
-                    3, 15,
+                    3, 15, "표현 1개만 소리 내어 3번 말해 보기.",
                     List.of(
                             List.of(new Course.Session("주문 표현 익히기", "주문 표현 3개를 소리 내어 말하고 한 번 녹음하기."),
                                     new Course.Session("주문 표현 복습", "어제 표현 3개를 보지 않고 말해 보고, 새 표현 1개 더하기."),
@@ -46,7 +46,7 @@ public final class CourseCatalog {
             new Course("GUITAR_SONG", "자기개발", "기타로 고른 곡 한 곡 연주하기",
                     "기타로 고른 곡 한 곡 연주하기",
                     "4주 차에 고른 곡을 느린 속도로 처음부터 끝까지 연주해 봅니다.",
-                    3, 15,
+                    3, 15, "코드 전환만 5분 연습하기.",
                     List.of(
                             List.of(new Course.Session("G·D 코드 전환", "G 코드와 D 코드를 번갈아 바꾸는 연습을 15분 하기."),
                                     new Course.Session("코드 전환 + 스트럼", "G, D 코드를 번갈아 잡으며 아래로 긁는 연습."),

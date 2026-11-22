@@ -172,6 +172,16 @@ async function startGoal() {
     selected_course = null;
     document.querySelectorAll('#course_list .course').forEach(function (item) { item.classList.remove('selected'); });
     loadGoals();
+    if (typeof loadToday === 'function') {
+        loadToday();
+    }
+}
+
+// 목록에서 예정이 아닌 활동에 붙이는 상태 표시
+function statusSuffix(status) {
+    let labels = {DONE: ' · 완료', SHORT_DONE: ' · 5분만 하고 완료', SKIPPED: ' · 건너뜀'};
+
+    return labels[status] || '';
 }
 
 async function loadGoals() {
@@ -207,7 +217,7 @@ async function loadGoals() {
         let activities = document.createElement('ul');
         goal.activities.forEach(function (activity) {
             let item = document.createElement('li');
-            item.textContent = activity.date + ' ' + activity.startTime + ' ' + activity.title;
+            item.textContent = activity.date + ' ' + activity.startTime + ' ' + activity.title + statusSuffix(activity.status);
             activities.appendChild(item);
         });
         card.appendChild(activities);

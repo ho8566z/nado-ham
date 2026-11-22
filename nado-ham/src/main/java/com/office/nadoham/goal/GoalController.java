@@ -2,10 +2,12 @@ package com.office.nadoham.goal;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +24,7 @@ import java.util.Map;
 public class GoalController {
 
     private final GoalService goalService;
+    private final GoalTodayService goalTodayService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -59,9 +62,62 @@ public class GoalController {
         return ResponseEntity.ok(Map.of("goals", goalService.listMine(principal.getName())));
     }
 
+    // 오늘 탭 데이터
+    @GetMapping("/today")
+    public ResponseEntity<TodayResponse> today(Principal principal) {
+        log.info("today()");
+
+        return ResponseEntity.ok(goalTodayService.today(principal.getName()));
+    }
+
+    @GetMapping("/activity/{no}/candidates")
+    public ResponseEntity<Map<String, Object>> candidates(@PathVariable("no") int no, Principal principal) {
+        log.info("candidates()");
+
+        return ResponseEntity.ok(Map.of("candidates", goalTodayService.moveCandidates(principal.getName(), no)));
+    }
+
+    @PostMapping("/activity/{no}/done")
+    public ResponseEntity<GoalResponse.ActivityResponse> done(@PathVariable("no") int no, Principal principal) {
+        log.info("done()");
+
+        return ResponseEntity.ok(goalTodayService.complete(principal.getName(), no, false));
+    }
+
+    @PostMapping("/activity/{no}/short-done")
+    public ResponseEntity<GoalResponse.ActivityResponse> shortDone(@PathVariable("no") int no, Principal principal) {
+        log.info("shortDone()");
+
+        return ResponseEntity.ok(goalTodayService.complete(principal.getName(), no, true));
+    }
+
+    @PostMapping("/activity/{no}/move")
+    public ResponseEntity<GoalResponse.ActivityResponse> move(
+            @PathVariable("no") int no, @RequestBody ActivityMoveRequest request, Principal principal) {
+        log.info("move()");
+
+        return ResponseEntity.ok(goalTodayService.move(principal.getName(), no, request));
+    }
+
+    @PostMapping("/activity/{no}/skip")
+    public ResponseEntity<GoalResponse.ActivityResponse> skip(@PathVariable("no") int no, Principal principal) {
+        log.info("skip()");
+
+        return ResponseEntity.ok(goalTodayService.skip(principal.getName(), no));
+    }
+
     @ExceptionHandler(GoalException.class)
     public ResponseEntity<Map<String, Object>> handleGoalException(GoalException e) {
-        return ResponseEntity.badRequest().body(Map.of("code", e.getCode(), "message", e.getMessage()));
+        return ResponseEntity.status(statusOf(e)).body(Map.of("code", e.getCode(), "message", e.getMessage()));
+    }
+
+    // 남의 활동·없는 활동은 404, 이미 처리했거나 아직 못 하는 상태는 409, 나머지 입력 오류는 400
+    private HttpStatus statusOf(GoalException e) {
+        return switch (e.getCode()) {
+            case "ACTIVITY_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "INVALID_STATE" -> HttpStatus.CONFLICT;
+            default -> HttpStatus.BAD_REQUEST;
+        };
     }
 
 }
