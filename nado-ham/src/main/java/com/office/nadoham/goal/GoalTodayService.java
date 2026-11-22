@@ -191,7 +191,8 @@ public class GoalTodayService {
     }
 
     private TodayResponse.Card toCard(GoalActivityEntity activity, GoalEntity goal, List<GoalActivityEntity> all) {
-        Course course = CourseCatalog.find(goal.getCourseCode()).orElseThrow();
+        CoursePlan plan = CoursePlan.of(goal);
+        Course course = plan.course();
         int weeklyDone = (int) all.stream()
                 .filter(other -> other.getGoalNo() == goal.getNo() && other.getWeekNo() == activity.getWeekNo())
                 .filter(other -> other.getStatus() == ActivityStatus.DONE || other.getStatus() == ActivityStatus.SHORT_DONE)
@@ -202,7 +203,7 @@ public class GoalTodayService {
                 .filter(other -> other.getGoalNo() == goal.getNo() && other.getWeekNo() == activity.getWeekNo())
                 .count();
 
-        return new TodayResponse.Card(activity.getNo(), goal.getNo(), course.theme(), course.name(),
+        return new TodayResponse.Card(activity.getNo(), goal.getNo(), course.theme(), plan.displayName(),
                 activity.getActDate().toString(), StartTimes.format(activity.getStartTime()), activity.getMinutes(),
                 activity.getTitle(), activity.getGuide(), course.shortGuide(), activity.getStatus().name(),
                 weeklyCount, weeklyDone);

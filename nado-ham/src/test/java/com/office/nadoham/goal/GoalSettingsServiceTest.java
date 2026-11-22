@@ -218,4 +218,35 @@ class GoalSettingsServiceTest {
         assertThat(activities.get(1).getMinutes()).isEqualTo(20);
     }
 
+    @Test
+    @DisplayName("종료일 수정: 늘리면 종료일이 바뀌고, 오늘 이전·마지막 활동 이전·1년 초과·없는 날짜는 INVALID_END_DATE/INVALID_DATE")
+    void changeEndDate_rules() {
+        typicalWeek();
+        GoalSettingsService service = on(LocalDate.of(2026, 11, 24));
+
+        GoalResponse extended = service.changeEndDate(OWNER, 1, new EndDateRequest("2026-12-31"));
+        assertThat(extended.endDate()).isEqualTo("2026-12-31");
+        assertThat(goal.getEndDate()).isEqualTo(LocalDate.of(2026, 12, 31));
+
+        assertThat(thrownBy(() -> service.changeEndDate(OWNER, 1, new EndDateRequest("2026-11-23"))).getCode()).isEqualTo("INVALID_END_DATE");
+        assertThat(thrownBy(() -> service.changeEndDate(OWNER, 1, new EndDateRequest("2026-11-26"))).getCode()).isEqualTo("INVALID_END_DATE");
+        assertThat(thrownBy(() -> service.changeEndDate(OWNER, 1, new EndDateRequest("2028-12-31"))).getCode()).isEqualTo("INVALID_END_DATE");
+        assertThat(thrownBy(() -> service.changeEndDate(OWNER, 1, new EndDateRequest("2026-02-31"))).getCode()).isEqualTo("INVALID_DATE");
+        assertThat(thrownBy(() -> service.changeEndDate(OWNER, 1, new EndDateRequest(null))).getCode()).isEqualTo("INVALID_DATE");
+        assertThat(goal.getEndDate()).isEqualTo(LocalDate.of(2026, 12, 31));
+    }
+
+    @Test
+    @DisplayName("종료일 수정: 마지막 활동 날짜까지는 줄일 수 있고, 남의 목표·일시 중지한 목표는 안 된다")
+    void changeEndDate_shortenAndState() {
+        typicalWeek();
+        GoalSettingsService service = on(LocalDate.of(2026, 11, 24));
+
+        assertThat(service.changeEndDate(OWNER, 1, new EndDateRequest("2026-11-27")).endDate()).isEqualTo("2026-11-27");
+        assertThat(thrownBy(() -> service.changeEndDate("bob", 1, new EndDateRequest("2026-12-01"))).getCode()).isEqualTo("GOAL_NOT_FOUND");
+
+        ReflectionTestUtils.setField(goal, "status", GoalStatus.PAUSED);
+        assertThat(thrownBy(() -> service.changeEndDate(OWNER, 1, new EndDateRequest("2026-12-01"))).getCode()).isEqualTo("INVALID_STATE");
+    }
+
 }

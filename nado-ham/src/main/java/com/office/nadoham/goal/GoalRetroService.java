@@ -67,7 +67,7 @@ public class GoalRetroService {
         int minutes = goalService.requireMinutes(request.minutes());
         LocalTime time = goalService.requireTime(request.startTime());
 
-        return goalService.planWeek(ownerId, next.course(), next.weekNo(), next.windowStart(),
+        return goalService.planWeek(ownerId, next.plan(), next.weekNo(), next.windowStart(),
                 weeklyCount, minutes, time, goalService.parseDays(request.days()));
     }
 
@@ -84,7 +84,7 @@ public class GoalRetroService {
         LocalTime defaultTime = goalService.requireTime(request.startTime());
         List<GoalService.ScheduledSlot> slots = goalService.validateSlots(request.slots(), next.windowStart(), weeklyCount, defaultTime);
 
-        goalService.saveWeekActivities(goal.getNo(), next.course(), next.weekNo(), slots, minutes);
+        goalService.saveWeekActivities(goal.getNo(), next.plan(), next.weekNo(), slots, minutes);
         goal.adjustPlan(weeklyCount, minutes, defaultTime);
         goal.extendEndDate(slots.get(slots.size() - 1).date());
 
@@ -128,7 +128,8 @@ public class GoalRetroService {
         int shortDone = count(week, ActivityStatus.SHORT_DONE);
         int skipped = count(week, ActivityStatus.SKIPPED);
         int missed = count(week, ActivityStatus.PLANNED);
-        boolean finalWeek = weekNo >= CourseCatalog.COURSE_WEEKS;
+        CoursePlan plan = CoursePlan.of(goal);
+        boolean finalWeek = plan.isFinalWeek(weekNo, goal.getStartDate(), goal.getEndDate());
 
         int planned = week.size();
         int completed = done + shortDone;
@@ -136,12 +137,10 @@ public class GoalRetroService {
         int suggestedCount = struggled ? Math.max(1, planned - 1) : planned;
         int suggestedMinutes = struggled ? lighter(goal.getMinutes()) : goal.getMinutes();
 
-        Course course = CourseCatalog.find(goal.getCourseCode()).orElseThrow();
-
-        return Optional.of(new RetroResponse(goal.getNo(), course.theme(), course.name(), weekNo, weekEnd.toString(),
+        return Optional.of(new RetroResponse(goal.getNo(), plan.course().theme(), plan.displayName(), weekNo, weekEnd.toString(),
                 planned, done, shortDone, skipped, missed, finalWeek, suggestedCount, suggestedMinutes,
                 StartTimes.format(goal.getPreferredTime()),
-                message(planned, completed, shortDone, finalWeek, struggled, suggestedCount, suggestedMinutes)));
+                message(plan, weekNo, planned, completed, shortDone, finalWeek, struggled, suggestedCount, suggestedMinutes)));
     }
 
     // 그 주의 마지막 날: 목표 시작일 기준 7일 단위 끝이거나, 그보다 늦게 옮겨진 활동이 있으면 그 날짜
@@ -172,7 +171,7 @@ public class GoalRetroService {
         LocalDate today = LocalDate.now(clock);
         LocalDate windowStart = natural.isAfter(today) ? natural : today;
 
-        return new NextWeek(retro.weekNo() + 1, windowStart, CourseCatalog.find(goal.getCourseCode()).orElseThrow());
+        return new NextWeek(retro.weekNo() + 1, windowStart, CoursePlan.of(goal));
     }
 
     private GoalEntity findOwnedActive(GoalEntity goal, String ownerId) {
@@ -201,29 +200,44 @@ public class GoalRetroService {
         return Math.max(GoalService.MIN_MINUTES, Math.min(reduced, minutes));
     }
 
-    private static String message(int planned, int completed, int shortDone, boolean finalWeek, boolean struggled,
-                                  int suggestedCount, int suggestedMinutes) {
+    private static String message(CoursePlan plan, int weekNo, int planned, int completed, int shortDone, boolean finalWeek,
+                                  boolean struggled, int suggestedCount, int suggestedMinutes) {
         StringBuilder text = new StringBuilder("이번 주 " + planned + "회 중 " + completed + "회 실천했어요");
         if (shortDone > 0) {
             text.append("(5분만 하기 ").append(shortDone).append("회 포함)");
         }
         text.append(".");
 
+        String period = plan.months() == 1 ? "한 달" : plan.months() + "개월";
         if (finalWeek) {
             text.append(completed == 0
-                    ? " 괜찮아요. 한 달 동안 시도한 것만으로도 충분해요. 마무리하고 언제든 다시 시작해 볼 수 있어요."
-                    : " 한 달 과정을 마쳤어요. 수고했어요!");
+                    ? " 괜찮아요. " + period + " 동안 시도한 것만으로도 충분해요. 마무리하고 언제든 다시 시작해 볼 수 있어요."
+                    : " " + period + " 과정을 마쳤어요. 수고했어요!");
         } else if (struggled) {
             text.append(" 괜찮아요. 다음 주는 주 ").append(suggestedCount).append("회, ").append(suggestedMinutes)
                     .append("분으로 가볍게 이어가 볼까요?");
         } else {
             text.append(" 다음 주도 주 ").append(suggestedCount).append("회로 이어갈까요?");
         }
+        text.append(monthEndNote(plan, weekNo, finalWeek));
 
         return text.toString();
     }
 
-    private record NextWeek(int weekNo, LocalDate windowStart, Course course) {
+    // 긴 과정에서 한 달이 끝나는 주에는 그 달의 중간 목표를 돌아보고 다음 달 목표를 알려 준다
+    private static String monthEndNote(CoursePlan plan, int weekNo, boolean finalWeek) {
+        if (plan.months() == 1 || finalWeek || weekNo % CoursePlan.WEEKS_PER_MONTH != 0) {
+            return "";
+        }
+
+        int month = plan.monthOf(weekNo);
+        List<CoursePlan.Milestone> milestones = plan.milestones();
+
+        return " " + month + "개월 차 목표('" + milestones.get(month - 1).goal() + "')를 돌아보세요. 다음 달 목표는 '"
+                + milestones.get(month).goal() + "'예요.";
+    }
+
+    private record NextWeek(int weekNo, LocalDate windowStart, CoursePlan plan) {
     }
 
 }

@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GoalSettingsService {
 
+    public static final int MAX_EXTEND_DAYS = 366;
+
     private final GoalRepository goalRepository;
     private final GoalActivityRepository goalActivityRepository;
     private final GoalService goalService;
@@ -69,6 +71,44 @@ public class GoalSettingsService {
         List<ActivityPlan> addedPlans = added.stream().map(a -> toPlan(goal.getOwnerId(), a)).toList();
 
         return new SettingsResult(goalService.toResponse(goal, all), addedPlans, removed);
+    }
+
+    // 종료일 직접 수정: 오늘 이후이고 이미 계획한 마지막 활동 날짜 이후로만, 지금 종료일에서 1년 안으로 바꿀 수 있다.
+    // 늘리면 활동을 옮길 수 있는 기간이 늘고, 줄이면 다음 주가 종료일 뒤에 시작하는 주가 마지막 주가 된다(전체 주 수는 그대로다).
+    @Transactional
+    public GoalResponse changeEndDate(String ownerId, int goalNo, EndDateRequest request) {
+        log.info("changeEndDate()");
+
+        GoalEntity goal = goalRepository.findWithLockByNo(goalNo).orElse(null);
+        if (goal == null || !goal.getOwnerId().equals(ownerId)) {
+            throw new GoalException("GOAL_NOT_FOUND", "없는 목표입니다.");
+        }
+        if (goal.getStatus() != GoalStatus.ACTIVE) {
+            throw new GoalException("INVALID_STATE", "진행 중인 목표만 수정할 수 있습니다. 일시 중지한 목표는 먼저 다시 시작해 주세요.");
+        }
+
+        LocalDate date = goalService.parseDate(request == null ? null : request.endDate());
+        LocalDate today = LocalDate.now(clock);
+        List<GoalActivityEntity> activities = goalActivityRepository.findByGoalNoInOrderByActDateAscStartTimeAsc(List.of(goal.getNo()));
+        LocalDate lastActivity = activities.stream()
+                .filter(a -> a.getStatus() != ActivityStatus.SKIPPED)
+                .map(GoalActivityEntity::getActDate)
+                .max(LocalDate::compareTo)
+                .orElse(today);
+
+        if (date.isBefore(today)) {
+            throw new GoalException("INVALID_END_DATE", "종료일은 오늘 이후여야 합니다.");
+        }
+        if (date.isBefore(lastActivity)) {
+            throw new GoalException("INVALID_END_DATE", "이미 계획한 마지막 활동(" + lastActivity + ") 이후로만 줄일 수 있습니다.");
+        }
+        if (date.isAfter(goal.getEndDate().plusDays(MAX_EXTEND_DAYS))) {
+            throw new GoalException("INVALID_END_DATE", "종료일은 지금 종료일에서 최대 " + MAX_EXTEND_DAYS + "일까지만 늘릴 수 있습니다.");
+        }
+
+        goal.changeEndDate(date);
+
+        return goalService.toResponse(goal, activities);
     }
 
     // 이번 주 활동 수가 새 주당 횟수보다 많으면 오늘 이후 예정 활동을 뒤쪽 날짜부터 지운다. 지운 개수를 돌려준다
@@ -123,8 +163,7 @@ public class GoalSettingsService {
             throw new GoalException("NOT_ENOUGH_DAYS", "이번 주에 활동을 넣을 수 있는 빈 날이 " + free.size() + "일뿐이라 " + weeklyCount + "회로 늘릴 수 없습니다.");
         }
 
-        Course course = CourseCatalog.find(goal.getCourseCode()).orElseThrow();
-        List<Course.Session> sessions = course.sessionsOfWeek(weekNo);
+        List<Course.Session> sessions = CoursePlan.of(goal).sessionsOfWeek(weekNo);
         List<GoalActivityEntity> created = new ArrayList<>();
         for (int i = 0; i < missing; i++) {
             LocalDate date = free.get(i * free.size() / missing);          // 빈 날 사이를 고르게 고른다

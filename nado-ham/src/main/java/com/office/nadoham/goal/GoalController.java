@@ -41,17 +41,19 @@ public class GoalController {
 
     // 선택할 수 있는 과정 목록
     @GetMapping("/courses")
-    public ResponseEntity<List<Course>> courses() {
+    public ResponseEntity<List<CourseSummary>> courses() {
         log.info("courses()");
 
-        return ResponseEntity.ok(CourseCatalog.all());
+        return ResponseEntity.ok(CourseCatalog.all().stream().map(CourseSummary::from).toList());
     }
 
     @PostMapping("/plan/preview")
     public ResponseEntity<Map<String, Object>> preview(@RequestBody GoalRequest request, Principal principal) {
         log.info("preview()");
 
-        return ResponseEntity.ok(Map.of("activities", goalService.previewFirstWeek(principal.getName(), request)));
+        return ResponseEntity.ok(Map.of(
+                "activities", goalService.previewFirstWeek(principal.getName(), request),
+                "summary", goalService.summarize(request)));
     }
 
     @PostMapping("/start")
@@ -159,6 +161,15 @@ public class GoalController {
         log.info("settings()");
 
         return ResponseEntity.ok(goalSettingsService.update(principal.getName(), goalNo, request));
+    }
+
+    // 진행 중인 목표의 종료일 수정
+    @PutMapping("/{goalNo}/end-date")
+    public ResponseEntity<GoalResponse> endDate(
+            @PathVariable("goalNo") int goalNo, @RequestBody EndDateRequest request, Principal principal) {
+        log.info("endDate()");
+
+        return ResponseEntity.ok(goalSettingsService.changeEndDate(principal.getName(), goalNo, request));
     }
 
     // 목표 일시 중지·다시 시작
