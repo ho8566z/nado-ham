@@ -110,6 +110,7 @@ class GoalTodayServiceTest {
         assertThat(response.missed()).isEmpty();
         assertThat(response.next()).isNull();
         assertThat(response.activeGoals()).isZero();
+        assertThat(response.pausedGoals()).isZero();
     }
 
     @Test
@@ -331,6 +332,18 @@ class GoalTodayServiceTest {
         GoalActivityEntity entity = activity(TODAY.minusDays(1), "08:30");
 
         assertThat(service.moveCandidates(OWNER, entity.getNo())).extracting(ActivityPlan::date).doesNotContain("2026-11-23");
+    }
+
+    @Test
+    @DisplayName("진행 중인 목표가 없고 일시 중지한 목표만 있으면 pausedGoals 로 알려 안내 문구를 구분할 수 있게 한다")
+    void today_onlyPausedGoals() {
+        when(goalRepository.findByOwnerIdAndStatusOrderByNoAsc("bob", GoalStatus.ACTIVE)).thenReturn(List.of());
+        when(goalRepository.countByOwnerIdAndStatus("bob", GoalStatus.PAUSED)).thenReturn(2L);
+
+        TodayResponse response = service.today("bob");
+
+        assertThat(response.activeGoals()).isZero();
+        assertThat(response.pausedGoals()).isEqualTo(2);
     }
 
 }

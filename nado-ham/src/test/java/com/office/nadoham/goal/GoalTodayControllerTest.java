@@ -57,9 +57,15 @@ class GoalTodayControllerTest {
         }
 
         @Bean
+        GoalLifecycleService goalLifecycleService() {
+            return Mockito.mock(GoalLifecycleService.class);
+        }
+
+        @Bean
         GoalController goalController(GoalService goalService, GoalTodayService goalTodayService,
-                                      GoalCalendarService goalCalendarService, GoalRetroService goalRetroService) {
-            return new GoalController(goalService, goalTodayService, goalCalendarService, goalRetroService);
+                                      GoalCalendarService goalCalendarService, GoalRetroService goalRetroService,
+                                      GoalLifecycleService goalLifecycleService) {
+            return new GoalController(goalService, goalTodayService, goalCalendarService, goalRetroService, goalLifecycleService);
         }
 
     }
@@ -72,12 +78,14 @@ class GoalTodayControllerTest {
     private GoalCalendarService goalCalendarService;
     @Autowired
     private GoalRetroService goalRetroService;
+    @Autowired
+    private GoalLifecycleService goalLifecycleService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        Mockito.reset(goalTodayService, goalCalendarService, goalRetroService);
+        Mockito.reset(goalTodayService, goalCalendarService, goalRetroService, goalLifecycleService);
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity())
                 .defaultRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
@@ -91,7 +99,7 @@ class GoalTodayControllerTest {
     @Test
     @DisplayName("오늘 탭 데이터는 로그인한 본인 아이디로 조회한다")
     void today_usesPrincipal() throws Exception {
-        when(goalTodayService.today("alice")).thenReturn(new TodayResponse("2026-11-23", List.of(), List.of(), null, 0));
+        when(goalTodayService.today("alice")).thenReturn(new TodayResponse("2026-11-23", List.of(), List.of(), null, 0, 0));
 
         mockMvc.perform(get("/goal/today").with(user("alice").roles("USER")))
                 .andExpect(status().isOk())
@@ -231,6 +239,29 @@ class GoalTodayControllerTest {
 
         verify(goalRetroService, never()).finish(any(), Mockito.anyInt());
         verify(goalRetroService, never()).pending(any());
+    }
+
+    @Test
+    @DisplayName("목표 일시 중지·다시 시작은 본인 아이디로 처리하고 없는 목표 404, 상태·한도 문제는 409·400 으로 알린다")
+    void pauseResume() throws Exception {
+        GoalResponse paused = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 3, 20, "PAUSED", List.of());
+        when(goalLifecycleService.pause("alice", 1)).thenReturn(paused);
+        when(goalLifecycleService.pause("alice", 404)).thenThrow(new GoalException("GOAL_NOT_FOUND", "없는 목표입니다."));
+        when(goalLifecycleService.pause("alice", 409)).thenThrow(new GoalException("INVALID_STATE", "진행 중인 목표만 가능합니다."));
+        when(goalLifecycleService.resume("alice", 1)).thenReturn(paused);
+        when(goalLifecycleService.resume("alice", 400)).thenThrow(new GoalException("GOAL_LIMIT", "한도입니다."));
+
+        mockMvc.perform(post("/goal/1/pause").with(user("alice").roles("USER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PAUSED"));
+        mockMvc.perform(post("/goal/404/pause").with(user("alice").roles("USER")))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("GOAL_NOT_FOUND"));
+        mockMvc.perform(post("/goal/409/pause").with(user("alice").roles("USER")))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("INVALID_STATE"));
+        mockMvc.perform(post("/goal/1/resume").with(user("alice").roles("USER")))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/goal/400/resume").with(user("alice").roles("USER")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("GOAL_LIMIT"));
+        mockMvc.perform(post("/goal/1/pause").with(user("boss").roles("ADMIN"))).andExpect(status().is3xxRedirection());
     }
 
 }

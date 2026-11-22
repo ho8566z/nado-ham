@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:replace="~{include/title::title}"/>
+
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <link rel="stylesheet" th:href="@{/css/header_nav_footer.css}">
+    <link rel="stylesheet" th:href="@{/css/admin_goal_metrics.css}">
+
+    <script th:src="@{/js/admin_goal_metrics.js}" defer></script>
+
+</head>
+<body>
+
+<header th:replace="~{include/header_nav_footer::header}" />
+
+<nav th:replace="~{include/header_nav_footer::nav}"/>
+
+<section>
+    <div id="section_wrap">
+        <div class="word">
+            GOAL METRICS
+        </div>
+
+        <div class="content">
+
+            <p id="message" class="message" role="status"></p>
+            <p id="as_of" class="as_of"></p>
+
+            <!-- 핵심 지표 -->
+            <div class="metric_card main">
+                <h3>다시 시작 비율 (핵심 지표)</h3>
+                <p class="desc">예정된 활동을 한 번 이상 놓친 사용자 중, 첫 미실행 다음 날부터 7일 안에 활동을 한 번 이상 완료한 사용자 비율(5분만 하고 완료 포함)</p>
+                <p class="rate" id="recovery_rate">-</p>
+                <p class="counts" id="recovery_counts"></p>
+            </div>
+
+            <!-- 보조 지표 -->
+            <div class="metric_row">
+                <div class="metric_card">
+                    <h3>첫 활동 완료 비율</h3>
+                    <p class="desc">첫 계획을 확정한 사용자 중 첫 활동을 완료한 비율</p>
+                    <p class="rate" id="first_rate">-</p>
+                    <p class="counts" id="first_counts"></p>
+                </div>
+                <div class="metric_card">
+                    <h3>과정 마무리 비율</h3>
+                    <p class="desc">과정 기간이 끝났거나 마무리한 사용자 중 1개월 과정을 마무리한 비율</p>
+                    <p class="rate" id="completion_rate">-</p>
+                    <p class="counts" id="completion_counts"></p>
+                </div>
+            </div>
+
+            <!-- 활동 상태 -->
+            <div class="metric_card">
+                <h3>전체 활동 상태</h3>
+                <p class="desc">완료 중 5분만 하고 완료한 비중으로 축소 실행이 얼마나 쓰이는지 볼 수 있다.</p>
+                <p class="counts" id="activity_counts"></p>
+                <p class="rate small" id="short_share">-</p>
+            </div>
+
+            <p class="hint">
+                '관찰 중'은 기준 기간이 아직 끝나지 않아 성공·실패를 정할 수 없는 사용자로 비율 계산에서 뺍니다.
+                일시 중지한 목표의 지난 예정 활동은 놓친 것으로 세지 않습니다.
+            </p>
+
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{include/header_nav_footer::footer}"/>
+
+</body>
+</html>

@@ -114,6 +114,29 @@ section {
     border-radius: 12px;
 }
 
+.goal_card.paused {
+    opacity: 0.8;
+    border-style: dashed;
+}
+
+.goal_card .goal_actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.goal_card .goal_actions button {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.goal_card .goal_note {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
 .goal_card .period {
     display: block;
     margin: 2px 0 6px;

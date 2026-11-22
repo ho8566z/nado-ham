@@ -184,6 +184,59 @@ function statusSuffix(status) {
     return labels[status] || '';
 }
 
+// 목표 제목 뒤에 붙이는 상태 표시(진행 중은 붙이지 않는다)
+function goalStatusLabel(status) {
+    let labels = {PAUSED: ' · 일시 중지', DONE: ' · 마침'};
+
+    return labels[status] || '';
+}
+
+// 목표 카드의 일시 중지 / 다시 시작 버튼(마친 목표에는 없다)
+function goalActions(goal) {
+    if (goal.status !== 'ACTIVE' && goal.status !== 'PAUSED') {
+        return null;
+    }
+
+    let box = document.createElement('div');
+    box.className = 'goal_actions';
+
+    let isPaused = goal.status === 'PAUSED';
+    let button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = isPaused ? '다시 시작' : '일시 중지';
+    button.addEventListener('click', function () { changeGoalState(goal, isPaused ? 'resume' : 'pause', button); });
+    box.appendChild(button);
+
+    if (isPaused) {
+        let note = document.createElement('span');
+        note.className = 'goal_note';
+        note.textContent = '쉬는 동안 활동은 알림·오늘 탭·달력에서 빠집니다. 다시 시작하면 쉰 일수만큼 남은 활동이 뒤로 밀립니다.';
+        box.appendChild(note);
+    }
+
+    return box;
+}
+
+async function changeGoalState(goal, action, button) {
+    button.disabled = true;
+    let result = await postJson('/goal/' + goal.no + '/' + action, {});
+    button.disabled = false;
+
+    if (result.ok) {
+        showMessage(action === 'pause' ? '목표를 일시 중지했어요. 준비되면 다시 시작해 주세요.' : '목표를 다시 시작했어요. 남은 활동을 쉰 일수만큼 뒤로 밀었어요.');
+    } else {
+        showMessage(result.data.message || '처리하지 못했습니다.', true);
+    }
+
+    loadGoals();
+    if (typeof loadToday === 'function') {
+        loadToday();
+    }
+    if (typeof loadRetros === 'function') {
+        loadRetros();
+    }
+}
+
 async function loadGoals() {
     let response = await fetch('/goal/list');
     let list = document.getElementById('goal_list');
@@ -206,9 +259,10 @@ async function loadGoals() {
     goals.forEach(function (goal) {
         let card = document.createElement('div');
         card.className = 'goal_card';
+        card.classList.toggle('paused', goal.status === 'PAUSED');
 
         let title = document.createElement('strong');
-        title.textContent = '[' + goal.theme + '] ' + goal.courseName;
+        title.textContent = '[' + goal.theme + '] ' + goal.courseName + goalStatusLabel(goal.status);
         let period = document.createElement('span');
         period.className = 'period';
         period.textContent = goal.startDate + ' ~ ' + goal.endDate + ' · 주 ' + goal.weeklyCount + '회 · ' + goal.minutes + '분';
@@ -221,6 +275,11 @@ async function loadGoals() {
             activities.appendChild(item);
         });
         card.appendChild(activities);
+
+        let actions = goalActions(goal);
+        if (actions) {
+            card.appendChild(actions);
+        }
 
         list.appendChild(card);
     });

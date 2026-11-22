@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.office.nadoham.goal.mapper.GoalMetricsMapper">
+
+    <!-- 핵심 지표용: 사용자별 첫 미실행일(first_miss)과 회복 여부.
+         '놓침'은 (1) 예정일이 지난 뒤 옮기거나 짧게 하거나 건너뛰어 MISSED_DATE 가 기록된 활동, (2) 예정일이 지났는데 아직 예정(PLANNED)인 활동이다.
+         (2)는 일시 중지한 목표(PAUSED)에서는 세지 않는다(쉬는 동안 활동은 다시 시작할 때 뒤로 밀린다).
+         회복은 첫 미실행일 다음 날부터 7일 안(DONE_AT 날짜)에 DONE·SHORT_DONE 으로 끝낸 활동이 있는 것이다. -->
+    <select id="selectMissedUsers"
+            resultType="com.office.nadoham.goal.MetricRows$MissedUser">
+        SELECT
+            t.owner_id AS ownerId,
+            t.first_miss AS firstMiss,
+            EXISTS (
+                SELECT 1
+                FROM GOAL_ACTIVITY a2
+                    JOIN GOAL g2 ON a2.GOAL_NO = g2.NO
+                WHERE g2.OWNER_ID = t.owner_id
+                  AND a2.STATUS IN ('DONE', 'SHORT_DONE')
+                  AND DATE(a2.DONE_AT) &gt; t.first_miss
+                  AND DATE(a2.DONE_AT) &lt;= DATE_ADD(t.first_miss, INTERVAL 7 DAY)
+            ) AS recovered
+        FROM (
+            SELECT
+                g.OWNER_ID AS owner_id,
+                MIN(
+                    CASE
+                        WHEN a.MISSED_DATE IS NOT NULL THEN a.MISSED_DATE
+                        WHEN a.STATUS = 'PLANNED' AND g.STATUS &lt;&gt; 'PAUSED' AND a.ACT_DATE &lt; #{today} THEN a.ACT_DATE
+                    END
+                ) AS first_miss
+            FROM
+                GOAL_ACTIVITY a
+                JOIN GOAL g ON a.GOAL_NO = g.NO
+            GROUP BY
+                g.OWNER_ID
+        ) t
+        WHERE
+            t.first_miss IS NOT NULL
+        ORDER BY
+            t.owner_id
+    </select>
+
+    <!-- 보조 지표 1용: 사용자의 첫 목표(번호가 가장 작은 목표)에서 날짜·시각이 가장 이른 활동 -->
+    <select id="selectFirstActivities"
+            resultType="com.office.nadoham.goal.MetricRows$FirstActivityRow">
+        SELECT
+            g.OWNER_ID AS ownerId,
+            a.STATUS AS status,
+            a.ACT_DATE AS actDate
+        FROM
+            GOAL g
+            JOIN GOAL_ACTIVITY a ON a.GOAL_NO = g.NO
+        WHERE
+            g.NO = (SELECT MIN(g2.NO) FROM GOAL g2 WHERE g2.OWNER_ID = g.OWNER_ID)
+            AND a.NO = (
+                SELECT a2.NO
+                FROM GOAL_ACTIVITY a2
+                WHERE a2.GOAL_NO = g.NO
+                ORDER BY a2.ACT_DATE, a2.START_TIME, a2.NO
+                LIMIT 1
+            )
+        ORDER BY
+            g.OWNER_ID
+    </select>
+
+    <!-- 보조 지표 2용: 사용자별로 마무리한 목표가 있는지, 과정 기간이 끝났거나 마무리한 목표가 있는지 -->
+    <select id="selectCourseUsers"
+            resultType="com.office.nadoham.goal.MetricRows$CourseUser">
+        SELECT
+            g.OWNER_ID AS ownerId,
+            MAX(g.STATUS = 'DONE') AS completed,
+            MAX(g.STATUS = 'DONE' OR g.END_DATE &lt; #{today}) AS ended
+        FROM
+            GOAL g
+        GROUP BY
+            g.OWNER_ID
+        ORDER BY
+            g.OWNER_ID
+    </select>
+
+    <select id="selectActivityStatusCounts"
+            resultType="com.office.nadoham.goal.MetricRows$StatusCount">
+        SELECT
+            a.STATUS AS status,
+            COUNT(*) AS total
+        FROM
+            GOAL_ACTIVITY a
+        GROUP BY
+            a.STATUS
+    </select>
+
+</mapper>

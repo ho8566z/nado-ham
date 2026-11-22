@@ -48,6 +48,7 @@
         <a th:href="@{/planner}" sec:authorize="!hasRole('ADMIN')">planner</a>
         <a th:href="@{/goal}" sec:authorize="hasRole('USER')">goal</a>
         <a th:href="@{/admin/users}" sec:authorize="hasRole('ADMIN')">admin</a>
+        <a th:href="@{/admin/goal-metrics}" sec:authorize="hasRole('ADMIN')">metrics</a>
     </div>
 </nav>
 
