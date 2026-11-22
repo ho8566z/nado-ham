@@ -109,6 +109,7 @@ class GoalTodayServiceTest {
         assertThat(response.cards()).isEmpty();
         assertThat(response.missed()).isEmpty();
         assertThat(response.next()).isNull();
+        assertThat(response.activeGoals()).isZero();
     }
 
     @Test
@@ -128,6 +129,7 @@ class GoalTodayServiceTest {
         assertThat(response.cards()).extracting(TodayResponse.Card::status).containsExactly("DONE", "PLANNED");
         assertThat(response.missed()).extracting(TodayResponse.Card::date).containsExactly("2026-11-22");
         assertThat(response.next().date()).isEqualTo("2026-11-25");
+        assertThat(response.activeGoals()).isEqualTo(1);
     }
 
     @Test

@@ -236,7 +236,7 @@ class GoalNoticeServiceTest {
     }
 
     private RetroResponse retro(boolean finalWeek) {
-        return new RetroResponse(1, "운동", "습관", finalWeek ? 4 : 1, "2026-11-22", 3, 2, 0, 0, 1, finalWeek, 3, 20,
+        return new RetroResponse(1, "운동", "습관", finalWeek ? 4 : 1, "2026-11-22", 3, 2, 0, 0, 1, finalWeek, 3, 20, "19:30",
                 "이번 주 3회 중 2회 실천했어요.");
     }
 

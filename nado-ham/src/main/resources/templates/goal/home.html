@@ -12,6 +12,7 @@
 
     <script th:src="@{/js/goal.js}" defer></script>
     <script th:src="@{/js/goal_today.js}" defer></script>
+    <script th:src="@{/js/goal_retro.js}" defer></script>
 
 </head>
 <body>
@@ -40,6 +41,12 @@
             <!-- 오늘 탭: 오늘 할 활동, 놓친 활동, 다음 예정 -->
             <div id="tab_today" class="tab_panel">
                 <p id="today_date" class="today_date"></p>
+
+                <!-- 주말 회고: 끝난 주의 결과를 보고 다음 주 계획을 만든다(회고할 주가 있을 때만 보인다) -->
+                <div id="retro_wrap" hidden>
+                    <h3>주간 회고</h3>
+                    <div id="retro_list" class="card_list"></div>
+                </div>
 
                 <div id="missed_wrap" hidden>
                     <h3>놓친 활동</h3>

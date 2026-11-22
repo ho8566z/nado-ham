@@ -261,6 +261,81 @@ section {
     cursor: pointer;
 }
 
+.retro_card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    background-color: var(--surface);
+    border: 1px solid #6c5ce7;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+}
+
+.retro_card .stats {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.retro_card .retro_form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.retro_card .retro_form fieldset label {
+    margin-right: 10px;
+}
+
+.retro_card .retro_preview[hidden],
+.retro_card .retro_form[hidden] {
+    display: none;
+}
+
+.retro_card .retro_preview ul {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+}
+
+.retro_card .retro_preview li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
+.retro_card .retro_preview li.conflict {
+    border-color: #e67e22;
+}
+
+.retro_card .retro_preview .guide,
+.retro_card .retro_preview .warn {
+    flex-basis: 100%;
+    font-size: 14px;
+}
+
+.retro_card .retro_preview .warn {
+    color: #d35400;
+}
+
+.retro_card button {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+/* 공통 input 규칙(폭 320px)이 체크박스에 적용돼 요일 선택이 흩어지지 않게 한다 */
+.condition_form input[type='checkbox'],
+.retro_card input[type='checkbox'] {
+    width: auto;
+    margin: 0 4px 0 0;
+    padding: 0;
+}
+
 @media (max-width: 768px) {
     #section_wrap {
         padding: 0 12px;

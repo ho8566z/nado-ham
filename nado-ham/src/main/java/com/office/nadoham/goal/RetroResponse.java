@@ -16,5 +16,6 @@ public record RetroResponse(
         boolean finalWeek,
         int suggestedWeeklyCount,
         int suggestedMinutes,
+        String suggestedStartTime,
         String message) {
 }

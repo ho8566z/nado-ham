@@ -88,7 +88,7 @@ class GoalTodayControllerTest {
     @Test
     @DisplayName("오늘 탭 데이터는 로그인한 본인 아이디로 조회한다")
     void today_usesPrincipal() throws Exception {
-        when(goalTodayService.today("alice")).thenReturn(new TodayResponse("2026-11-23", List.of(), List.of(), null));
+        when(goalTodayService.today("alice")).thenReturn(new TodayResponse("2026-11-23", List.of(), List.of(), null, 0));
 
         mockMvc.perform(get("/goal/today").with(user("alice").roles("USER")))
                 .andExpect(status().isOk())
@@ -176,7 +176,7 @@ class GoalTodayControllerTest {
     @Test
     @DisplayName("회고 API: 회고 목록·다음 주 미리보기·확정·마무리는 본인 아이디로 처리한다")
     void retroApis() throws Exception {
-        RetroResponse retro = new RetroResponse(1, "운동", "습관", 1, "2026-11-22", 3, 2, 0, 0, 1, false, 3, 20, "이번 주 3회 중 2회 실천했어요.");
+        RetroResponse retro = new RetroResponse(1, "운동", "습관", 1, "2026-11-22", 3, 2, 0, 0, 1, false, 3, 20, "19:30", "이번 주 3회 중 2회 실천했어요.");
         when(goalRetroService.pending("alice")).thenReturn(List.of(retro));
         when(goalRetroService.previewNext(Mockito.eq("alice"), Mockito.eq(1), any()))
                 .thenReturn(List.of(new ActivityPlan("2026-11-24", "19:30", 20, "빠르게 걷기 20분", "안내", false, null)));

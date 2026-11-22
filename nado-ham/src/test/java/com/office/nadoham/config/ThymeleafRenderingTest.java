@@ -241,8 +241,8 @@ class ThymeleafRenderingTest {
         String body = withoutComments(render("/goal", asUser()));
 
         assertThat(body).contains("id=\"tab_btn_today\"").contains("id=\"tab_btn_goals\"");
-        assertThat(body).contains("id=\"tab_today\"").contains("id=\"missed_list\"").contains("id=\"today_list\"").contains("id=\"next_info\"");
-        assertThat(body).contains("src=\"/js/goal.js\"").contains("src=\"/js/goal_today.js\"");
+        assertThat(body).contains("id=\"tab_today\"").contains("id=\"retro_list\"").contains("id=\"missed_list\"").contains("id=\"today_list\"").contains("id=\"next_info\"");
+        assertThat(body).contains("src=\"/js/goal.js\"").contains("src=\"/js/goal_today.js\"").contains("src=\"/js/goal_retro.js\"");
     }
 
 }

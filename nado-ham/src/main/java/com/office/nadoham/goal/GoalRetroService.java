@@ -6,6 +6,7 @@ import com.office.nadoham.goal.jpa.GoalActivityRepository;
 import com.office.nadoham.goal.jpa.GoalEntity;
 import com.office.nadoham.goal.jpa.GoalRepository;
 import com.office.nadoham.goal.jpa.GoalStatus;
+import com.office.nadoham.planner.util.StartTimes;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -139,6 +140,7 @@ public class GoalRetroService {
 
         return Optional.of(new RetroResponse(goal.getNo(), course.theme(), course.name(), weekNo, weekEnd.toString(),
                 planned, done, shortDone, skipped, missed, finalWeek, suggestedCount, suggestedMinutes,
+                StartTimes.format(goal.getPreferredTime()),
                 message(planned, completed, shortDone, finalWeek, struggled, suggestedCount, suggestedMinutes)));
     }
 

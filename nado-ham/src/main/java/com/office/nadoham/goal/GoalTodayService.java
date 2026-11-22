@@ -45,7 +45,7 @@ public class GoalTodayService {
         LocalDate today = LocalDate.now(clock);
         List<GoalEntity> goals = goalRepository.findByOwnerIdAndStatusOrderByNoAsc(ownerId, GoalStatus.ACTIVE);
         if (goals.isEmpty()) {
-            return new TodayResponse(today.toString(), List.of(), List.of(), null);
+            return new TodayResponse(today.toString(), List.of(), List.of(), null, 0);
         }
 
         Map<Integer, GoalEntity> goalByNo = goals.stream().collect(Collectors.toMap(GoalEntity::getNo, Function.identity()));
@@ -71,7 +71,7 @@ public class GoalTodayService {
             }
         }
 
-        return new TodayResponse(today.toString(), cards, missed, next);
+        return new TodayResponse(today.toString(), cards, missed, next, goals.size());
     }
 
     // 옮기기 후보: 오늘부터 7일 안에서 같은 목표의 다른 활동이 없는 날을 원래 시각으로 제시한다(겹치는 일정은 표시만 한다)
