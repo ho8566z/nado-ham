@@ -229,7 +229,7 @@ public class GoalService {
 
         return new GoalResponse(goal.getNo(), course.code(), course.theme(), course.name(), course.checkpoint(),
                 goal.getStartDate().toString(), goal.getEndDate().toString(), goal.getWeeklyCount(), goal.getMinutes(),
-                goal.getStatus().name(), activityResponses);
+                StartTimes.format(goal.getPreferredTime()), goal.getStatus().name(), activityResponses);
     }
 
     Course findCourse(String code) {
