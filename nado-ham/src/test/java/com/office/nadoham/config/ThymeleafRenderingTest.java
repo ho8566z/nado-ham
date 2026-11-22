@@ -270,6 +270,16 @@ class ThymeleafRenderingTest {
     }
 
     @Test
+    @DisplayName("달력 화면: 월간/주간 전환 버튼, 주간 보기 영역과 전용 스크립트·스타일이 렌더링된다")
+    void plannerWeekView() throws Exception {
+        String body = withoutComments(render("/planner", asUser()));
+
+        assertThat(body).contains("class=\"view_toggle\"").contains("data-view=\"month\"").contains("data-view=\"week\"");
+        assertThat(body).contains("id=\"week_view\"").contains("id=\"week_grid\"").contains("id=\"week_label\"").contains("class=\"week_prev\"").contains("class=\"week_next\"");
+        assertThat(body).contains("src=\"/js/planner_week.js\"").contains("href=\"/css/planner_week.css\"");
+    }
+
+    @Test
     @DisplayName("통계 화면: 전용 스크립트와 스타일이 연결된다")
     void statsPage() throws Exception {
         String body = withoutComments(render("/planner/stats", asUser()));
