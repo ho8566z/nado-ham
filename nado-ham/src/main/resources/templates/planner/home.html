@@ -11,6 +11,7 @@
     <link rel="stylesheet" th:href="@{/css/planner.css}">
 
     <script src="/js/planner_fetch.js"></script>
+    <script src="/js/planner_goal.js"></script>
     <script src="/js/planner.js"></script>
 
 </head>
@@ -74,6 +75,9 @@
                 <p class="search_msg"></p>
                 <ul class="search_list"></ul>
             </div>
+
+            <!-- 이번 달 달력에 겹쳐 보이는 목표 색 안내(목표 활동이 없으면 숨김) -->
+            <p id="goal_legend" class="goal_legend" hidden></p>
 
             <!-- 달력 테이블 -->
             <div class="calendar_wrap">
