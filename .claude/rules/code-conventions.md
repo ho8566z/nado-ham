@@ -57,7 +57,7 @@ paths:
 - 예외는 스택과 함께 한 곳에서 `log.error("…", e)`. 예상된 업무 예외는 스택 없이 WARN.
 - 남기지 않는 것: 비밀번호·토큰·API 키·세션 ID, 개인 정보, 요청·응답 본문 전체.
 
-## 7. 이 프로젝트(calendar-bot)의 예외
+## 7. 이 프로젝트(nado-ham)의 예외
 - 읽기 전용 결과 클래스(`BriefPlanRow`, `BriefTarget`, `PlannerStatRow`, `AdminUserDto`, `AuthorityDto`)는 `record`로 전환했다. 새 DTO도 `record`로 만든다.
 - 폼 바인딩·`BeanPropertyRowMapper`가 setter를 쓰는 `MemberDto`, `PlannerDto`와 엔티티(`@Data`, setter)는 기존 코드가 의존하므로 새 코드에는 쓰지 않되 기존은 그대로 둔다. 엔티티 setter 제거는 하지 않기로 했다(2026-11-13 사용자 결정).
 - 컨트롤러 이름은 `XController` 하나로 쓴다(페이지·JSON을 한 클래스가 함께 다루는 곳이 있어 `PageController`/`ApiController`로 나누지 않는다).

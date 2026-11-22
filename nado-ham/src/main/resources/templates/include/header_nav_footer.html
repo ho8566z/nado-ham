@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<header th:fragment="header">
+    <div id="top">
+        <h3>nado-ham</h3>
+        <!-- 좁은 화면(모바일)에서만 보이는 메뉴 버튼 -->
+        <button type="button" id="menu_toggle" aria-controls="header_wrap nav_wrap" aria-expanded="false">MENU</button>
+    </div>
+    <div id="header_wrap">
+        <a th:href="@{/}">home</a>
+
+        <!--
+        <span th:if="${session.loginedID == null}">
+                <a th:href="@{/member/signup}">sign-up</a> &nbsp;&nbsp;
+                <a th:href="@{/member/signin}">sign-in</a> &nbsp;&nbsp;
+        </span>
+
+        <span th:if="${session.loginedID != null}">
+                 <a th:href="@{/member/modify}">modify</a> &nbsp;&nbsp;
+                <a th:href="@{/member/signout_confirm}">signout</a> &nbsp;&nbsp;
+        </span>
+        -->
+
+        <th:block sec:authorize="!hasAnyRole('PRE_USER', 'USER', 'ADMIN')">
+            <a th:href="@{/member/signup}">sign-up</a>
+            <a th:href="@{/member/signin}">sign-in</a>
+        </th:block>
+
+        <th:block sec:authorize="hasAnyRole('PRE_USER', 'USER', 'ADMIN')">
+            <a th:href="@{/member/modify}">modify</a>
+            <!-- CSRF 보호 때문에 로그아웃은 POST 로만 받는다. 링크를 누르면 아래 숨은 폼을 보낸다(csrf.js) -->
+            <a href="#none" class="signout_link">signout</a>
+            <form id="signout_form" th:action="@{/member/signout_confirm}" method="post" hidden></form>
+        </th:block>
+
+    </div>
+    <!-- fetch 요청에 붙일 CSRF 토큰(csrf.js 가 읽는다) -->
+    <div id="csrf_token" hidden th:attr="data-token=${_csrf.token},data-header=${_csrf.headerName}"></div>
+    <script th:src="@{/js/csrf.js}"></script>
+    <script th:src="@{/js/menu.js}" defer></script>
+</header>
+
+<nav th:fragment="nav">
+    <div id="nav_wrap">
+        <a th:href="@{/planner}" sec:authorize="!hasRole('ADMIN')">planner</a>
+        <a th:href="@{/goal}" sec:authorize="hasRole('USER')">goal</a>
+        <a th:href="@{/admin/users}" sec:authorize="hasRole('ADMIN')">admin</a>
+    </div>
+</nav>
+
+<footer th:fragment="footer">
+    <div id="footer_wrap">
+        Copyright OFFICE Corp. ALL Rights Reserved.
+    </div>
+</footer>
+
+</html>
