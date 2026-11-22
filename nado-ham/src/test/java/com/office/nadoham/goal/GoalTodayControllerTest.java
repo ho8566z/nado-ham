@@ -78,7 +78,10 @@ class GoalTodayControllerTest {
     @BeforeEach
     void setUp() {
         Mockito.reset(goalTodayService, goalCalendarService, goalRetroService);
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity())
+                .defaultRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .build();
     }
 
     private GoalResponse.ActivityResponse activityResponse(String status) {

@@ -54,7 +54,10 @@ class BriefControllerTest {
     @BeforeEach
     void setUp() {
         Mockito.reset(service);
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity())
+                .defaultRequest(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .build();
     }
 
     private static BriefNowService.Result result(BriefNowService.Outcome outcome) {
