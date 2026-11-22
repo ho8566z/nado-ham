@@ -37,6 +37,9 @@
                 <button type="button" data-view="week" aria-pressed="false">주간</button>
             </div>
 
+            <!-- 외부 캘린더(구글·애플·네이버 등)로 가져갈 수 있는 파일 -->
+            <a class="calendar_export" th:href="@{/goal/calendar.ics}" download>외부 캘린더로 내보내기(.ics)</a>
+
             <!-- 년, 월 선택 select -->
             <div class="select_wrap">
                 <a class="btn_pre" href="#none"> &nbsp;&nbsp; &#60; &nbsp;&nbsp; </a>
