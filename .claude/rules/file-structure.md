@@ -44,6 +44,6 @@ paths:
 - 비밀값은 저장소에 올리지 않는다(`.gitignore`, 예시는 `*.example`만 커밋).
 - 화면 JS는 페이지마다 진입 파일 하나, 공용 기능은 모듈로 나눠 `import`한다. 서버 호출은 공용 모듈 한 곳을 거친다.
 
-## 6. 이 프로젝트(calendar-bot)의 예외
+## 6. 이 프로젝트(nado-ham)의 예외
 - 이 프로젝트는 도메인 패키지 안에서 `controller/service/repository/dto` 하위 패키지로 나누지 않고, 컨트롤러·서비스·DTO를 도메인 패키지 바로 아래에 두고 영속 계층만 `jpa/`(엔티티·JPA 리포지토리)와 `mapper/`(MyBatis)로 나눈다. 이 방식이 이 프로젝트의 구조이며 한 프로젝트 안에서 통일되어 있으므로 유지한다. 새 도메인도 같은 방식으로 만든다.
 - `MemberDao`(JdbcTemplate)는 기존 방식이라 유지하되, 새 영속 코드는 `jpa/` 또는 `mapper/`에 둔다.
