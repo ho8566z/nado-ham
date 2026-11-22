@@ -2,7 +2,9 @@ package com.office.nadoham.goal;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +34,7 @@ public class GoalController {
     private final GoalRetroService goalRetroService;
     private final GoalLifecycleService goalLifecycleService;
     private final GoalSettingsService goalSettingsService;
+    private final CalendarExportService calendarExportService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -121,6 +125,17 @@ public class GoalController {
         log.info("calendar()");
 
         return ResponseEntity.ok(Map.of("items", goalCalendarService.monthItems(principal.getName(), year, month)));
+    }
+
+    // 외부 캘린더(구글·애플·네이버 등)로 가져갈 수 있는 내 일정·목표 활동 파일(.ics)
+    @GetMapping("/calendar.ics")
+    public ResponseEntity<byte[]> exportCalendar(Principal principal) {
+        log.info("exportCalendar()");
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/calendar;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"nado-ham.ics\"")
+                .body(calendarExportService.export(principal.getName()).getBytes(StandardCharsets.UTF_8));
     }
 
     // 회고할 차례인 목표들(끝난 주의 실천 결과와 다음 주 제안)
