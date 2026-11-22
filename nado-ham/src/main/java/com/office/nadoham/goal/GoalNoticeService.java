@@ -13,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,6 +30,7 @@ import java.util.List;
 @Service
 public class GoalNoticeService {
 
+    static final int RETRO_WINDOW_HOURS = 24;       // 회고 알림은 정해진 시각부터 이 시간 안에만 보낸다(너무 늦은 알림은 보내지 않는다)
     static final String STALE_MESSAGE = "발송 결과를 알 수 없어 다시 보내지 않음";
 
     public enum DispatchResult { SENT, FAILED, GIVEUP, SKIPPED }
@@ -40,29 +42,34 @@ public class GoalNoticeService {
     private final GoalNoticeMapper goalNoticeMapper;
     private final GoalNoticeRepository goalNoticeRepository;
     private final BriefSender briefSender;
+    private final GoalRetroService goalRetroService;
     private final Clock clock;
     private final int maxDelayMinutes;
     private final int leadMinutes;
     private final int maxAttempts;
     private final int retryBackoffMinutes;
     private final int staleSendingMinutes;
+    private final int retroHour;
 
     public GoalNoticeService(GoalNoticeMapper goalNoticeMapper, GoalNoticeRepository goalNoticeRepository,
-                             BriefSender briefSender, Clock clock,
+                             BriefSender briefSender, GoalRetroService goalRetroService, Clock clock,
                              @Value("${goal.notify.max-delay-minutes:30}") int maxDelayMinutes,
                              @Value("${goal.notify.lead-minutes:0}") int leadMinutes,
                              @Value("${goal.notify.max-attempts:3}") int maxAttempts,
                              @Value("${goal.notify.retry-backoff-minutes:3}") int retryBackoffMinutes,
-                             @Value("${goal.notify.stale-sending-minutes:10}") int staleSendingMinutes) {
+                             @Value("${goal.notify.stale-sending-minutes:10}") int staleSendingMinutes,
+                             @Value("${goal.notify.retro-hour:21}") int retroHour) {
         this.goalNoticeMapper = goalNoticeMapper;
         this.goalNoticeRepository = goalNoticeRepository;
         this.briefSender = briefSender;
+        this.goalRetroService = goalRetroService;
         this.clock = clock;
         this.maxDelayMinutes = Math.max(1, maxDelayMinutes);
         this.leadMinutes = Math.max(0, leadMinutes);
         this.maxAttempts = Math.max(1, maxAttempts);
         this.retryBackoffMinutes = Math.max(1, retryBackoffMinutes);
         this.staleSendingMinutes = Math.max(1, staleSendingMinutes);
+        this.retroHour = Math.min(23, Math.max(0, retroHour));
     }
 
     // now 기준으로 보낼 차례인 활동 시각 알림을 보낸다. 활동 시각이 (now - 허용 지연) ~ (now + 미리 알림) 인 예정 활동이 대상이다.
@@ -88,6 +95,42 @@ public class GoalNoticeService {
             log.info("활동 알림을 처리했다: 대상 {}건, 발송 {}, 실패 {}, 건너뜀 {}", targets.size(), sent, failed, skipped);
         }
         return new RunSummary(targets.size(), sent, failed, skipped);
+    }
+
+    // 회고할 차례인 목표의 주말 회고 알림을 보낸다. 그 주 마지막 날의 retro-hour 시부터 24시간 안이 대상이다.
+    // 사용자가 앱에서 다음 주 계획을 만들면 회고가 없어지므로 더 보내지 않는다.
+    public RunSummary sendDueRetros(LocalDateTime now) {
+        List<NoticeGoal> goals = goalNoticeMapper.selectNoticeGoals();
+
+        int targets = 0;
+        int sent = 0;
+        int failed = 0;
+        int skipped = 0;
+        for (NoticeGoal goal : goals) {
+            RetroResponse retro = goalRetroService.pendingOf(goal.goalNo()).orElse(null);
+            if (retro == null) {
+                continue;
+            }
+
+            LocalDateTime scheduledAt = LocalDate.parse(retro.weekEnd()).atTime(retroHour, 0);
+            if (now.isBefore(scheduledAt) || now.isAfter(scheduledAt.plusHours(RETRO_WINDOW_HOURS))) {
+                continue;
+            }
+
+            targets++;
+            DispatchResult result = dispatch(NoticeKind.RETRO, goal.goalNo(), retro.weekNo(), scheduledAt, goal.chatId(),
+                    GoalNoticeMessages.retro(retro.theme(), retro), now);
+            switch (result) {
+                case SENT -> sent++;
+                case SKIPPED -> skipped++;
+                default -> failed++;
+            }
+        }
+
+        if (targets > 0) {
+            log.info("회고 알림을 처리했다: 대상 {}건, 발송 {}, 실패 {}, 건너뜀 {}", targets, sent, failed, skipped);
+        }
+        return new RunSummary(targets, sent, failed, skipped);
     }
 
     // 발송 중으로 오래 남은 알림을 포기로 바꾼다

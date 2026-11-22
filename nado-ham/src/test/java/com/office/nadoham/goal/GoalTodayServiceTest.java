@@ -140,7 +140,7 @@ class GoalTodayServiceTest {
 
         TodayResponse.Card card = service.today(OWNER).cards().get(0);
 
-        assertThat(card.weeklyCount()).isEqualTo(3);
+        assertThat(card.weeklyCount()).isEqualTo(4);        // 분모는 그 주에 계획한 활동 수(건너뛴 것 포함)
         assertThat(card.weeklyDone()).isEqualTo(2);
         assertThat(card.shortGuide()).isEqualTo(CourseCatalog.find("EXERCISE_HABIT").orElseThrow().shortGuide());
     }

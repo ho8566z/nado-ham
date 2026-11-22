@@ -52,9 +52,14 @@ class GoalTodayControllerTest {
         }
 
         @Bean
+        GoalRetroService goalRetroService() {
+            return Mockito.mock(GoalRetroService.class);
+        }
+
+        @Bean
         GoalController goalController(GoalService goalService, GoalTodayService goalTodayService,
-                                      GoalCalendarService goalCalendarService) {
-            return new GoalController(goalService, goalTodayService, goalCalendarService);
+                                      GoalCalendarService goalCalendarService, GoalRetroService goalRetroService) {
+            return new GoalController(goalService, goalTodayService, goalCalendarService, goalRetroService);
         }
 
     }
@@ -65,12 +70,14 @@ class GoalTodayControllerTest {
     private GoalTodayService goalTodayService;
     @Autowired
     private GoalCalendarService goalCalendarService;
+    @Autowired
+    private GoalRetroService goalRetroService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        Mockito.reset(goalTodayService, goalCalendarService);
+        Mockito.reset(goalTodayService, goalCalendarService, goalRetroService);
         mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
@@ -164,6 +171,63 @@ class GoalTodayControllerTest {
                 .andExpect(jsonPath("$.code").value("INVALID_PERIOD"));
         mockMvc.perform(get("/goal/calendar?year=2026&month=11").with(user("boss").roles("ADMIN")))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("회고 API: 회고 목록·다음 주 미리보기·확정·마무리는 본인 아이디로 처리한다")
+    void retroApis() throws Exception {
+        RetroResponse retro = new RetroResponse(1, "운동", "습관", 1, "2026-11-22", 3, 2, 0, 0, 1, false, 3, 20, "이번 주 3회 중 2회 실천했어요.");
+        when(goalRetroService.pending("alice")).thenReturn(List.of(retro));
+        when(goalRetroService.previewNext(Mockito.eq("alice"), Mockito.eq(1), any()))
+                .thenReturn(List.of(new ActivityPlan("2026-11-24", "19:30", 20, "빠르게 걷기 20분", "안내", false, null)));
+        GoalResponse goalResponse = new GoalResponse(1, "EXERCISE_HABIT", "운동", "습관", "확인", "2026-11-16", "2026-12-13", 3, 20, "ACTIVE", List.of());
+        when(goalRetroService.startNext(Mockito.eq("alice"), Mockito.eq(1), any())).thenReturn(goalResponse);
+        when(goalRetroService.finish("alice", 1)).thenReturn(goalResponse);
+
+        mockMvc.perform(get("/goal/retro").with(user("alice").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retros[0].weekNo").value(1))
+                .andExpect(jsonPath("$.retros[0].suggestedWeeklyCount").value(3));
+        String body = "{\"weekNo\":1,\"weeklyCount\":3,\"minutes\":20,\"startTime\":\"19:30\",\"days\":[1,2,3]}";
+        mockMvc.perform(post("/goal/1/next/preview").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.activities[0].date").value("2026-11-24"));
+        mockMvc.perform(post("/goal/1/next/start").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ACTIVE"));
+        mockMvc.perform(post("/goal/1/finish").with(user("alice").roles("USER")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("회고 API 오류: 없는·남의 목표는 404, 회고 전·이미 계획함·마지막 주는 409, 입력 오류는 400")
+    void retroErrors() throws Exception {
+        when(goalRetroService.previewNext(Mockito.eq("alice"), Mockito.eq(404), any())).thenThrow(new GoalException("GOAL_NOT_FOUND", "없는 목표입니다."));
+        when(goalRetroService.previewNext(Mockito.eq("alice"), Mockito.eq(409), any())).thenThrow(new GoalException("RETRO_NOT_READY", "아직입니다."));
+        when(goalRetroService.startNext(Mockito.eq("alice"), Mockito.eq(410), any())).thenThrow(new GoalException("ALREADY_PLANNED", "이미 계획했습니다."));
+        when(goalRetroService.finish("alice", 411)).thenThrow(new GoalException("NO_NEXT_WEEK", "마지막 주입니다."));
+        when(goalRetroService.startNext(Mockito.eq("alice"), Mockito.eq(400), any())).thenThrow(new GoalException("INVALID_SLOTS", "활동 수가 다릅니다."));
+        String body = "{\"weekNo\":1}";
+
+        mockMvc.perform(post("/goal/404/next/preview").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("GOAL_NOT_FOUND"));
+        mockMvc.perform(post("/goal/409/next/preview").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("RETRO_NOT_READY"));
+        mockMvc.perform(post("/goal/410/next/start").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ALREADY_PLANNED"));
+        mockMvc.perform(post("/goal/411/finish").with(user("alice").roles("USER")))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NO_NEXT_WEEK"));
+        mockMvc.perform(post("/goal/400/next/start").with(user("alice").roles("USER")).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_SLOTS"));
+    }
+
+    @Test
+    @DisplayName("회고 API 는 USER 가 아니면 쓸 수 없고 서비스도 호출되지 않는다")
+    void retroOnlyUser() throws Exception {
+        mockMvc.perform(get("/goal/retro").with(user("boss").roles("ADMIN"))).andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/goal/1/finish").with(user("newbie").roles("PRE_USER"))).andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/goal/1/next/start")).andExpect(status().is3xxRedirection());
+
+        verify(goalRetroService, never()).finish(any(), Mockito.anyInt());
+        verify(goalRetroService, never()).pending(any());
     }
 
 }

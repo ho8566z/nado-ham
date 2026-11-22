@@ -37,8 +37,8 @@ class GoalNoticeMessagesTest {
     @Test
     @DisplayName("회고 알림: 결과 문구 뒤에 앱에서 할 일을 안내하고, 마지막 주는 과정 마무리를 안내한다")
     void retro() {
-        RetroResponse middle = new RetroResponse(1, "운동", "습관", 1, 3, 2, 0, 0, 1, false, 3, 20, "이번 주 3회 중 2회 실천했어요.");
-        RetroResponse last = new RetroResponse(1, "운동", "습관", 4, 3, 3, 0, 0, 0, true, 3, 20, "한 달을 마쳤어요.");
+        RetroResponse middle = new RetroResponse(1, "운동", "습관", 1, "2026-11-22", 3, 2, 0, 0, 1, false, 3, 20, "이번 주 3회 중 2회 실천했어요.");
+        RetroResponse last = new RetroResponse(1, "운동", "습관", 4, "2026-12-19", 3, 3, 0, 0, 0, true, 3, 20, "한 달을 마쳤어요.");
 
         assertThat(GoalNoticeMessages.retro("운동", middle).get(0)).startsWith("[운동] 이번 주 3회 중 2회 실천했어요.").contains("다음 주 계획을 확인");
         assertThat(GoalNoticeMessages.retro("운동", last).get(0)).contains("한 달 과정을 마무리");

@@ -196,10 +196,15 @@ public class GoalTodayService {
                 .filter(other -> other.getStatus() == ActivityStatus.DONE || other.getStatus() == ActivityStatus.SHORT_DONE)
                 .count();
 
+        // 분모는 그 주에 계획한 활동 수다(주마다 횟수를 조정할 수 있어 목표의 현재 횟수와 다를 수 있다)
+        int weeklyCount = (int) all.stream()
+                .filter(other -> other.getGoalNo() == goal.getNo() && other.getWeekNo() == activity.getWeekNo())
+                .count();
+
         return new TodayResponse.Card(activity.getNo(), goal.getNo(), course.theme(), course.name(),
                 activity.getActDate().toString(), StartTimes.format(activity.getStartTime()), activity.getMinutes(),
                 activity.getTitle(), activity.getGuide(), course.shortGuide(), activity.getStatus().name(),
-                goal.getWeeklyCount(), weeklyDone);
+                weeklyCount, weeklyDone);
     }
 
     private LocalDate parseDate(String raw) {

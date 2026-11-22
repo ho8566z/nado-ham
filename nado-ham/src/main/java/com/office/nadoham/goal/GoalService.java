@@ -59,10 +59,15 @@ public class GoalService {
         int minutes = requireMinutes(request.minutes());
         LocalTime time = requireTime(request.startTime());
 
-        Set<DayOfWeek> days = parseDays(request.days());
+        return planWeek(ownerId, course, FIRST_WEEK, startDate, weeklyCount, minutes, time, parseDays(request.days()));
+    }
+
+    // weekNo 주차의 계획 배치: windowStart 부터 7일 안에서 가능한 요일 중 주당 횟수만큼 고르게 고른다(겹치는 일정은 표시만 한다)
+    List<ActivityPlan> planWeek(String ownerId, Course course, int weekNo, LocalDate windowStart,
+                                int weeklyCount, int minutes, LocalTime time, Set<DayOfWeek> days) {
         List<LocalDate> candidates = new ArrayList<>();
         for (int i = 0; i < WEEK_DAYS; i++) {
-            LocalDate date = startDate.plusDays(i);
+            LocalDate date = windowStart.plusDays(i);
             if (days.contains(date.getDayOfWeek())) {
                 candidates.add(date);
             }
@@ -72,7 +77,7 @@ public class GoalService {
         }
 
         List<ActivityPlan> plans = new ArrayList<>();
-        List<Course.Session> sessions = course.sessionsOfWeek(FIRST_WEEK);
+        List<Course.Session> sessions = course.sessionsOfWeek(weekNo);
         for (int i = 0; i < weeklyCount; i++) {
             LocalDate date = candidates.get(i * candidates.size() / weeklyCount);      // 후보 날짜 사이를 고르게 고른다
             plans.add(toActivityPlan(ownerId, date, time, minutes, sessions.get(i % sessions.size())));
@@ -92,25 +97,7 @@ public class GoalService {
         int minutes = requireMinutes(request.minutes());
         LocalTime defaultTime = requireTime(request.startTime());
 
-        List<GoalRequest.Slot> slots = request.slots();
-        if (slots == null || slots.size() != weeklyCount) {
-            throw new GoalException("INVALID_SLOTS", "확정할 활동 수가 주당 횟수와 다릅니다.");
-        }
-
-        List<ScheduledSlot> scheduled = new ArrayList<>();
-        Set<LocalDate> usedDates = new HashSet<>();
-        for (GoalRequest.Slot slot : slots) {
-            LocalDate date = parseDate(slot.date());
-            if (date.isBefore(startDate) || date.isAfter(startDate.plusDays(WEEK_DAYS - 1))) {
-                throw new GoalException("INVALID_SLOTS", "활동 날짜는 시작일부터 7일 안이어야 합니다.");
-            }
-            if (!usedDates.add(date)) {
-                throw new GoalException("INVALID_SLOTS", "같은 날에 활동을 두 번 넣을 수 없습니다.");
-            }
-            LocalTime time = slot.time() == null || slot.time().isBlank() ? defaultTime : requireTime(slot.time());
-            scheduled.add(new ScheduledSlot(date, time));
-        }
-        scheduled.sort(Comparator.comparing(ScheduledSlot::date));
+        List<ScheduledSlot> scheduled = validateSlots(request.slots(), startDate, weeklyCount, defaultTime);
 
         if (goalRepository.countByOwnerIdAndStatus(ownerId, GoalStatus.ACTIVE) >= MAX_ACTIVE_GOALS) {
             throw new GoalException("GOAL_LIMIT", "동시에 진행할 수 있는 목표는 " + MAX_ACTIVE_GOALS + "개까지입니다.");
@@ -129,13 +116,44 @@ public class GoalService {
                 .preferredTime(defaultTime)
                 .build());
 
-        List<Course.Session> sessions = course.sessionsOfWeek(FIRST_WEEK);
+        List<GoalActivityEntity> activities = saveWeekActivities(goal.getNo(), course, FIRST_WEEK, scheduled, minutes);
+
+        return toResponse(goal, activities);
+    }
+
+    // 확정 요청의 날짜·시각 목록 검증: 개수가 주당 횟수와 같고, windowStart 부터 7일 안이며, 같은 날 두 번 넣지 않는다. 날짜순으로 돌려준다
+    List<ScheduledSlot> validateSlots(List<GoalRequest.Slot> slots, LocalDate windowStart, int weeklyCount, LocalTime defaultTime) {
+        if (slots == null || slots.size() != weeklyCount) {
+            throw new GoalException("INVALID_SLOTS", "확정할 활동 수가 주당 횟수와 다릅니다.");
+        }
+
+        List<ScheduledSlot> scheduled = new ArrayList<>();
+        Set<LocalDate> usedDates = new HashSet<>();
+        for (GoalRequest.Slot slot : slots) {
+            LocalDate date = parseDate(slot.date());
+            if (date.isBefore(windowStart) || date.isAfter(windowStart.plusDays(WEEK_DAYS - 1))) {
+                throw new GoalException("INVALID_SLOTS", "활동 날짜는 시작일부터 7일 안이어야 합니다.");
+            }
+            if (!usedDates.add(date)) {
+                throw new GoalException("INVALID_SLOTS", "같은 날에 활동을 두 번 넣을 수 없습니다.");
+            }
+            LocalTime time = slot.time() == null || slot.time().isBlank() ? defaultTime : requireTime(slot.time());
+            scheduled.add(new ScheduledSlot(date, time));
+        }
+        scheduled.sort(Comparator.comparing(ScheduledSlot::date));
+
+        return scheduled;
+    }
+
+    // weekNo 주차의 활동을 과정의 해당 주 활동 이름·안내로 저장한다
+    List<GoalActivityEntity> saveWeekActivities(int goalNo, Course course, int weekNo, List<ScheduledSlot> scheduled, int minutes) {
+        List<Course.Session> sessions = course.sessionsOfWeek(weekNo);
         List<GoalActivityEntity> activities = new ArrayList<>();
         for (int i = 0; i < scheduled.size(); i++) {
             Course.Session session = sessions.get(i % sessions.size());
             activities.add(GoalActivityEntity.builder()
-                    .goalNo(goal.getNo())
-                    .weekNo(FIRST_WEEK)
+                    .goalNo(goalNo)
+                    .weekNo(weekNo)
                     .actDate(scheduled.get(i).date())
                     .startTime(scheduled.get(i).time())
                     .minutes(minutes)
@@ -143,9 +161,10 @@ public class GoalService {
                     .guide(session.guide())
                     .build());
         }
+
         goalActivityRepository.saveAll(activities);
 
-        return toResponse(goal, activities);
+        return activities;
     }
 
     // 내 목표 목록(최근 것부터)과 각 목표의 활동
@@ -198,7 +217,7 @@ public class GoalService {
         return null;
     }
 
-    private GoalResponse toResponse(GoalEntity goal, List<GoalActivityEntity> activities) {
+    GoalResponse toResponse(GoalEntity goal, List<GoalActivityEntity> activities) {
         Course course = CourseCatalog.find(goal.getCourseCode()).orElseThrow();
 
         List<GoalResponse.ActivityResponse> activityResponses = activities.stream()
@@ -210,7 +229,7 @@ public class GoalService {
                 goal.getStatus().name(), activityResponses);
     }
 
-    private Course findCourse(String code) {
+    Course findCourse(String code) {
         return CourseCatalog.find(code == null ? "" : code)
                 .orElseThrow(() -> new GoalException("INVALID_COURSE", "없는 과정입니다."));
     }
@@ -230,7 +249,7 @@ public class GoalService {
         return date;
     }
 
-    private LocalDate parseDate(String raw) {
+    LocalDate parseDate(String raw) {
         try {
             return LocalDate.parse(raw);
         } catch (DateTimeParseException | NullPointerException e) {
@@ -238,21 +257,21 @@ public class GoalService {
         }
     }
 
-    private int requireWeeklyCount(Integer weeklyCount) {
+    int requireWeeklyCount(Integer weeklyCount) {
         if (weeklyCount == null || weeklyCount < 1 || weeklyCount > WEEK_DAYS) {
             throw new GoalException("INVALID_WEEKLY_COUNT", "주당 횟수는 1~7회입니다.");
         }
         return weeklyCount;
     }
 
-    private int requireMinutes(Integer minutes) {
+    int requireMinutes(Integer minutes) {
         if (minutes == null || minutes < MIN_MINUTES || minutes > MAX_MINUTES) {
             throw new GoalException("INVALID_MINUTES", "1회 소요 시간은 " + MIN_MINUTES + "~" + MAX_MINUTES + "분입니다.");
         }
         return minutes;
     }
 
-    private LocalTime requireTime(String raw) {
+    LocalTime requireTime(String raw) {
         try {
             String normalized = StartTimes.normalize(raw);
             if (normalized == null) {
@@ -264,7 +283,7 @@ public class GoalService {
         }
     }
 
-    private Set<DayOfWeek> parseDays(List<Integer> days) {
+    Set<DayOfWeek> parseDays(List<Integer> days) {
         if (days == null || days.isEmpty()) {
             throw new GoalException("INVALID_DAYS", "가능한 요일을 하나 이상 골라야 합니다.");
         }
@@ -280,7 +299,7 @@ public class GoalService {
         return result;
     }
 
-    private record ScheduledSlot(LocalDate date, LocalTime time) {
+    record ScheduledSlot(LocalDate date, LocalTime time) {
     }
 
 }

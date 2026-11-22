@@ -48,6 +48,7 @@ class GoalNoticeServiceTest {
     private GoalNoticeMapper mapper;
     private GoalNoticeRepository repository;
     private BriefSender sender;
+    private GoalRetroService retroService;
     private GoalNoticeService service;
 
     @BeforeEach
@@ -55,7 +56,8 @@ class GoalNoticeServiceTest {
         mapper = Mockito.mock(GoalNoticeMapper.class);
         repository = Mockito.mock(GoalNoticeRepository.class);
         sender = Mockito.mock(BriefSender.class);
-        service = new GoalNoticeService(mapper, repository, sender, CLOCK, 30, 0, MAX_ATTEMPTS, 3, 10);
+        retroService = Mockito.mock(GoalRetroService.class);
+        service = new GoalNoticeService(mapper, repository, sender, retroService, CLOCK, 30, 0, MAX_ATTEMPTS, 3, 10, 21);
 
         when(repository.findByKindAndGoalNoAndRefNoAndScheduledAt(any(), anyInt(), anyInt(), any())).thenReturn(Optional.empty());
         when(repository.saveAndFlush(any(GoalNoticeEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -231,6 +233,57 @@ class GoalNoticeServiceTest {
         when(mapper.selectDueReminders(any(), any(), anyInt(), any())).thenReturn(List.of(target(5, "EXERCISE_HABIT")));
 
         assertThat(service.sendDueReminders(NOW).sent()).isEqualTo(1);
+    }
+
+    private RetroResponse retro(boolean finalWeek) {
+        return new RetroResponse(1, "운동", "습관", finalWeek ? 4 : 1, "2026-11-22", 3, 2, 0, 0, 1, finalWeek, 3, 20,
+                "이번 주 3회 중 2회 실천했어요.");
+    }
+
+    @Test
+    @DisplayName("회고 알림: 그 주 마지막 날 21시부터 보내고, 주차를 대상 번호·21시를 알림 시각으로 선점한다")
+    void retroSentAfterRetroHour() {
+        when(mapper.selectNoticeGoals()).thenReturn(List.of(new NoticeGoal(1, "alice", CHAT)));
+        when(retroService.pendingOf(1)).thenReturn(Optional.of(retro(false)));
+        LocalDateTime evening = LocalDateTime.of(2026, 11, 22, 21, 5);
+
+        GoalNoticeService.RunSummary summary = service.sendDueRetros(evening);
+
+        assertThat(summary).isEqualTo(new GoalNoticeService.RunSummary(1, 1, 0, 0));
+        ArgumentCaptor<GoalNoticeEntity> saved = ArgumentCaptor.forClass(GoalNoticeEntity.class);
+        verify(repository).saveAndFlush(saved.capture());
+        assertThat(saved.getValue().getKind()).isEqualTo(NoticeKind.RETRO);
+        assertThat(saved.getValue().getRefNo()).isEqualTo(1);
+        assertThat(saved.getValue().getScheduledAt()).isEqualTo(LocalDateTime.of(2026, 11, 22, 21, 0));
+        verify(sender).send(eq(CHAT), anyList());
+    }
+
+    @Test
+    @DisplayName("회고 알림: 21시 전이거나 24시간이 지났거나 회고할 차례가 아니면 보내지 않는다")
+    void retroOutsideWindow() {
+        when(mapper.selectNoticeGoals()).thenReturn(List.of(new NoticeGoal(1, "alice", CHAT)));
+        when(retroService.pendingOf(1)).thenReturn(Optional.of(retro(false)));
+
+        assertThat(service.sendDueRetros(LocalDateTime.of(2026, 11, 22, 20, 59)).targets()).isZero();
+        assertThat(service.sendDueRetros(LocalDateTime.of(2026, 11, 23, 21, 1)).targets()).isZero();
+
+        when(retroService.pendingOf(1)).thenReturn(Optional.empty());
+        assertThat(service.sendDueRetros(LocalDateTime.of(2026, 11, 22, 21, 30)).targets()).isZero();
+        verify(sender, never()).send(anyLong(), anyList());
+    }
+
+    @Test
+    @DisplayName("회고 알림: 이미 보낸 회고는 다음 분에 다시 보내지 않는다")
+    void retroNotRepeated() {
+        when(mapper.selectNoticeGoals()).thenReturn(List.of(new NoticeGoal(1, "alice", CHAT)));
+        when(retroService.pendingOf(1)).thenReturn(Optional.of(retro(false)));
+        when(repository.findByKindAndGoalNoAndRefNoAndScheduledAt(any(), anyInt(), anyInt(), any()))
+                .thenReturn(Optional.of(existing(NoticeStatus.SENT, 1, NOW)));
+
+        GoalNoticeService.RunSummary summary = service.sendDueRetros(LocalDateTime.of(2026, 11, 22, 21, 30));
+
+        assertThat(summary).isEqualTo(new GoalNoticeService.RunSummary(1, 0, 0, 1));
+        verify(sender, never()).send(anyLong(), anyList());
     }
 
 }
