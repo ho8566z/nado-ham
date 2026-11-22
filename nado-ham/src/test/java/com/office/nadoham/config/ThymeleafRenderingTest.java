@@ -126,6 +126,11 @@ class ThymeleafRenderingTest {
             return "admin/users";
         }
 
+        @GetMapping("/admin/goal-metrics")
+        String adminGoalMetrics() {
+            return "admin/goal_metrics";
+        }
+
     }
 
     @Autowired
@@ -162,7 +167,7 @@ class ThymeleafRenderingTest {
     void allPagesRender() throws Exception {
         String[][] pages = {
                 {"/", null}, {"/member/signin", null}, {"/member/signup", null},
-                {"/member/modify", "user"}, {"/planner", "user"}, {"/planner/stats", "user"}, {"/goal", "user"}, {"/admin/users", "admin"}};
+                {"/member/modify", "user"}, {"/planner", "user"}, {"/planner/stats", "user"}, {"/goal", "user"}, {"/admin/users", "admin"}, {"/admin/goal-metrics", "admin"}};
 
         for (String[] page : pages) {
             String html = page[1] == null ? render(page[0])
@@ -207,7 +212,7 @@ class ThymeleafRenderingTest {
         assertThat(user).doesNotContain("href=\"/member/signin\"").doesNotContain("href=\"/admin/users\"");
 
         String admin = withoutComments(render("/admin/users", asAdmin()));
-        assertThat(admin).contains("href=\"/admin/users\"").doesNotContain("href=\"/planner\"");
+        assertThat(admin).contains("href=\"/admin/users\"").contains("href=\"/admin/goal-metrics\"").doesNotContain("href=\"/planner\"");
     }
 
     @Test
@@ -249,6 +254,15 @@ class ThymeleafRenderingTest {
         assertThat(body).contains("id=\"tab_btn_today\"").contains("id=\"tab_btn_goals\"");
         assertThat(body).contains("id=\"tab_today\"").contains("id=\"retro_list\"").contains("id=\"missed_list\"").contains("id=\"today_list\"").contains("id=\"next_info\"");
         assertThat(body).contains("src=\"/js/goal.js\"").contains("src=\"/js/goal_today.js\"").contains("src=\"/js/goal_retro.js\"");
+    }
+
+    @Test
+    @DisplayName("지표 화면: 핵심·보조 지표 영역과 스크립트가 렌더링된다")
+    void goalMetricsPage() throws Exception {
+        String body = withoutComments(render("/admin/goal-metrics", asAdmin()));
+
+        assertThat(body).contains("id=\"recovery_rate\"").contains("id=\"first_rate\"").contains("id=\"completion_rate\"").contains("id=\"activity_counts\"");
+        assertThat(body).contains("src=\"/js/admin_goal_metrics.js\"").contains("href=\"/css/admin_goal_metrics.css\"");
     }
 
 }

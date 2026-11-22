@@ -88,6 +88,11 @@ public class GoalActivityEntity {
         this.startTime = time;
     }
 
+    // 일시 중지했던 목표를 다시 시작할 때 쉰 일수만큼 날짜를 뒤로 민다(시각·상태는 그대로)
+    public void shiftDate(long days) {
+        this.actDate = actDate.plusDays(days);
+    }
+
     public void skip(LocalDate today) {
         if (missedDate == null) {
             missedDate = actDate;

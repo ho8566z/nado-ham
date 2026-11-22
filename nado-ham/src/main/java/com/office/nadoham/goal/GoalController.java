@@ -28,6 +28,7 @@ public class GoalController {
     private final GoalTodayService goalTodayService;
     private final GoalCalendarService goalCalendarService;
     private final GoalRetroService goalRetroService;
+    private final GoalLifecycleService goalLifecycleService;
 
     @GetMapping({"", "/"})
     public String home() {
@@ -147,6 +148,21 @@ public class GoalController {
         log.info("finish()");
 
         return ResponseEntity.ok(goalRetroService.finish(principal.getName(), goalNo));
+    }
+
+    // 목표 일시 중지·다시 시작
+    @PostMapping("/{goalNo}/pause")
+    public ResponseEntity<GoalResponse> pause(@PathVariable("goalNo") int goalNo, Principal principal) {
+        log.info("pause()");
+
+        return ResponseEntity.ok(goalLifecycleService.pause(principal.getName(), goalNo));
+    }
+
+    @PostMapping("/{goalNo}/resume")
+    public ResponseEntity<GoalResponse> resume(@PathVariable("goalNo") int goalNo, Principal principal) {
+        log.info("resume()");
+
+        return ResponseEntity.ok(goalLifecycleService.resume(principal.getName(), goalNo));
     }
 
     @ExceptionHandler(GoalException.class)

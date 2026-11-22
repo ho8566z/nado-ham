@@ -5,6 +5,7 @@ import com.office.nadoham.goal.jpa.GoalActivityEntity;
 import com.office.nadoham.goal.jpa.GoalActivityRepository;
 import com.office.nadoham.goal.jpa.GoalEntity;
 import com.office.nadoham.goal.jpa.GoalRepository;
+import com.office.nadoham.goal.jpa.GoalStatus;
 import com.office.nadoham.planner.PlannerDto;
 import com.office.nadoham.planner.PlannerService;
 import com.office.nadoham.planner.util.StartTimes;
@@ -50,8 +51,14 @@ public class GoalCalendarService {
         return goalActivityRepository
                 .findByGoalNoInAndActDateBetweenOrderByActDateAscStartTimeAsc(goalByNo.keySet(), first, last).stream()
                 .filter(activity -> activity.getStatus() != ActivityStatus.SKIPPED)
+                .filter(activity -> !isOnHold(activity, goalByNo.get(activity.getGoalNo())))
                 .map(activity -> toItem(ownerId, activity, goalByNo.get(activity.getGoalNo())))
                 .toList();
+    }
+
+    // 일시 중지한 목표의 예정 활동은 아직 날짜가 확정되지 않은 것이라 달력에 보이지 않는다(끝낸 활동은 기록으로 남는다)
+    private boolean isOnHold(GoalActivityEntity activity, GoalEntity goal) {
+        return goal.getStatus() == GoalStatus.PAUSED && activity.getStatus() == ActivityStatus.PLANNED;
     }
 
     private CalendarItem toItem(String ownerId, GoalActivityEntity activity, GoalEntity goal) {

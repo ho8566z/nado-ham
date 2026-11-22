@@ -80,6 +80,14 @@ function renderNextInfo(data) {
             + ' [' + data.next.theme + '] ' + data.next.title;
     } else if (hasGoal) {
         text.textContent = data.cards.length > 0 ? '오늘 할 일을 모두 마쳤어요.' : '오늘은 예정된 활동이 없어요.';
+    } else if (data.pausedGoals > 0) {
+        text.textContent = '일시 중지한 목표만 있어요. ';
+        let link = document.createElement('button');
+        link.type = 'button';
+        link.className = 'link_button';
+        link.textContent = '목표 탭에서 다시 시작할 수 있어요';
+        link.addEventListener('click', function () { selectTab('goals'); });
+        text.appendChild(link);
     } else {
         text.textContent = '진행 중인 목표가 없어요. ';
         let link = document.createElement('button');
