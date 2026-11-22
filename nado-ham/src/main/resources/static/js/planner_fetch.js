@@ -83,6 +83,11 @@ async function fetchGetCurrentMonthPlans() {
         let data = await response.json();
         console.log('data: ', data);
 
+        // 주간 보기를 켜 둔 상태에서 일정을 고치거나 지웠다면 주간 화면도 새로 그린다
+        if (typeof refreshWeekView === 'function') {
+            refreshWeekView();
+        }
+
         // 달을 빠르게 넘기면 이전 달의 응답이 늦게 도착할 수 있다. 지금 보는 달의 응답이 아니면 버린다.
         if (requestedYear !== current_year || requestedMonth !== current_month) {
             return;
